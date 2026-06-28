@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>からだノート</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #2A3140;
+  --surface: #3E4759;
+  --surface2: #4F5873;
+  --surface3: #5a6480;
+  --accent: #CDE1E1;
+  --accent-dim: #CDE1E133;
+  --accent2: #8faeb0;
+  --red: #c97e7e;
+  --gold: #d4a843;
+  --green: #7eb88a;
+  --text: #D3D3D3;
+  --text-muted: #7a8499;
+  --text-sub: #9aa0b0;
+  --border: #3E4759;
+  --border-light: #4F5873;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  max-width:480px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  overflow:hidden;
+}
+header{
+  padding:14px 20px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.header-weekly{display:flex;flex-direction:column;gap:2px}
+.hw-row{display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
+.hw-row b{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:17px;letter-spacing:.02em;color:var(--accent)}
+.hw-sep{color:var(--border-light);font-size:12px;margin:0 4px}
+.hw-diff{font-size:10px;font-weight:500;margin-left:1px}
+.hw-diff.plus{color:var(--red)}
+.hw-diff.minus{color:var(--green)}
+.hw-diff.zero{color:var(--text-muted)}
+.hw-name{font-size:10px;color:var(--text-sub);margin-right:1px}
+.fat-target-row{padding:2px 0 0;font-size:9px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fat-target-row .ft-label{color:var(--text-sub);letter-spacing:.08em}
+.hdate{font-size:11px;color:var(--text-muted);letter-spacing:.05em}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:9px;letter-spacing:.12em;color:var(--text-muted);cursor:pointer;border-bottom:1px solid transparent;transition:all .2s;font-weight:500}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-icon{font-size:16px;display:block;margin-bottom:3px}
+.page{display:none;flex-direction:column;flex:1;overflow:hidden}
+.page.active{display:flex}
+
+/* ── CALENDAR ── */
+.cal-scroll{overflow-y:auto;flex:1}
+.cal-wrap{padding:16px 16px 0}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav button{background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:4px 10px}
+.cal-month{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;letter-spacing:.1em;color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{text-align:center;font-size:9px;color:var(--text-muted);padding:4px 0;letter-spacing:.08em}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;transition:background .15s;padding:2px;position:relative}
+.cal-day:hover{background:var(--surface2)}
+.cal-day.empty{cursor:default}
+.cal-day.today .day-num{background:var(--accent);color:#2A3140;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:500}
+.cal-day.selected{background:var(--surface2);outline:1px solid var(--accent)}
+/* 達成/未達インジケーター */
+.cal-day.achieved{background:rgba(126,184,138,0.15)}
+.cal-day.achieved .day-num{color:var(--green)}
+.cal-day.failed{background:rgba(201,126,126,0.13)}
+.cal-day.failed .day-num{color:var(--red)}
+.cal-day.special-hiking{position:relative;background:rgba(139,127,168,0.22);border:1px solid rgba(139,127,168,0.5);border-radius:8px}
+.cal-day.special-hiking::before{content:"⛰️";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;opacity:0.75;pointer-events:none}
+.cal-day.special-hiking .day-num{color:#cbb8e8}
+.cal-day.special-party{position:relative;background:rgba(212,168,67,0.2);border:1px solid rgba(212,168,67,0.5);border-radius:8px}
+.cal-day.special-party::before{content:"🎉";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;opacity:0.75;pointer-events:none}
+.cal-day.special-party .day-num{color:var(--gold)}
+/* 動的特別な日（special-custom-0〜4） */
+.cal-day[class*="special-custom"]{position:relative;background:rgba(139,184,165,0.2);border:1px solid rgba(139,184,165,0.4);border-radius:8px}
+.cal-day[class*="special-custom"] .day-num{color:var(--green)}
+/* ユーザー画像 */
+.user-img-preview{width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--border)}
+/* 特別な日設定カード */
+.special-day-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.special-day-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.special-day-emoji{font-size:20px;cursor:pointer}
+.special-day-toggle{display:flex;gap:6px;margin-top:6px}
+.special-day-toggle label{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sub);cursor:pointer}
+.day-num{font-size:12px;line-height:1;color:var(--text-sub);position:relative;z-index:1}
+.day-dots{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap;justify-content:center;min-height:5px}
+.dot{width:4px;height:4px;border-radius:50%}
+.dot-meal{background:var(--accent)}
+.dot-exercise{background:var(--accent2)}
+.dot-poop{background:#a08060}
+.dot-weight{background:#8b7fa8}
+.dot-condition{background:var(--red)}
+.dot-weekly{background:#5b8fc9}
+.daily-detail{margin:12px 16px 16px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.detail-header{padding:11px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.detail-header-title{font-size:12px;letter-spacing:.08em;color:var(--text-sub)}
+.nutrition-bar{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.nut-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.nut-row:last-child{margin-bottom:0}
+.nut-label{font-size:10px;color:var(--text-muted);width:28px;letter-spacing:.05em}
+.nut-track{flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.nut-fill{height:100%;border-radius:2px;transition:width .4s ease}
+.nut-fill.kcal{background:var(--accent)}
+.nut-fill.prot{background:#7eb8a4}
+.nut-fill.fat{background:#c97e7e}
+.nut-fill.carb{background:#8b7fa8}
+.nut-nums{font-size:10px;color:var(--text-sub);min-width:80px;text-align:right}
+.nut-over{color:var(--red)!important}
+.record-list{padding:6px 0}
+.record-item{padding:8px 16px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid var(--border)}
+.record-item:last-child{border-bottom:none}
+.record-icon{font-size:15px;flex-shrink:0;margin-top:2px;opacity:.8}
+.record-content{flex:1}
+.record-label{font-size:9px;color:var(--text-muted);letter-spacing:.1em}
+.record-value{font-size:13px;color:var(--text);margin-top:2px;white-space:pre-wrap;word-break:break-word;line-height:1.5}
+.record-nut{font-size:10px;color:var(--text-muted);margin-top:3px}
+.record-time{font-size:9px;color:var(--text-muted);margin-top:2px}
+.rec-del{flex-shrink:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;margin-left:4px;align-self:center}
+.rec-del:hover{border-color:var(--red);color:var(--red)}
+.detail-status{display:flex;gap:6px;align-items:center}
+.status-icon{font-size:16px;opacity:0.85}
+
+/* ── CHAT ── */
+.chat-page{display:none;flex-direction:column;flex:1;overflow:hidden}
+.chat-page.active{display:flex}
+.chara-stage{flex-shrink:0;height:160px;background:linear-gradient(to bottom,#1e2736 0%,var(--bg) 100%);border-bottom:1px solid var(--border);position:relative;overflow:hidden;display:flex;align-items:flex-end}
+.chara-illust-wrap{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:155px;display:flex;align-items:flex-end;justify-content:center}
+.chara-illust{width:130px;height:145px;background-size:contain;background-repeat:no-repeat;background-position:bottom center;transition:opacity .3s}
+.chara-illust.kei{font-size:60px;display:flex;align-items:center;justify-content:center}
+
+
+
+
+
+.chat-messages{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+/* log view toggle */
+.chat-toolbar{flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding:4px 12px;background:var(--bg);border-bottom:1px solid var(--border);gap:6px}
+.log-btn{background:none;border:1px solid var(--border);border-radius:12px;padding:3px 10px;font-size:10px;color:var(--text-muted);cursor:pointer;font-family:'Noto Sans JP',sans-serif;letter-spacing:.06em;transition:all .15s}
+.log-btn.active{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+/* animation */
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* user message - right aligned */
+.msg-user{align-self:flex-end;max-width:78%;animation:fadeUp .2s ease}
+.msg-user .msg-bubble{background:var(--accent);color:#2A3140;border-radius:16px 16px 3px 16px;padding:9px 13px;font-size:13px;line-height:1.6;word-break:break-word;white-space:pre-wrap;font-weight:500}
+.msg-user .msg-meta{font-size:9px;color:var(--text-muted);text-align:right;margin-top:3px;padding-right:2px}
+/* AI message - icon + bubble side by side */
+.msg-ai{align-self:flex-start;max-width:86%;animation:fadeUp .2s ease;display:flex;flex-direction:column;gap:2px}
+.msg-ai-row{display:flex;align-items:flex-start;gap:8px}
+.msg-ai-icon{width:36px;height:36px;border-radius:50%;flex-shrink:0;overflow:hidden;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;margin-top:2px}
+.msg-ai-icon.kei-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.msg-ai-body{flex:1;min-width:0}
+.msg-ai .msg-bubble{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:3px 16px 16px 16px;padding:9px 13px;font-size:13px;line-height:1.6;word-break:break-word;white-space:pre-wrap}
+.msg-ai .msg-meta{font-size:9px;color:var(--text-muted);margin-top:3px;padding-left:44px;display:flex;gap:4px}
+.msg-char{color:var(--accent)}
+/* log view - hide icons */
+.log-view .msg-ai-icon{display:none}
+.log-view .msg-ai-row{display:block}
+.log-view .msg-ai .msg-meta{padding-left:2px}
+.log-view .msg-ai .msg-bubble{border-radius:16px 16px 16px 3px}
+/* checkbox for log selection */
+.log-check-wrap{display:flex;align-items:center;gap:6px}
+.log-check{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+.chat-input-wrap{padding:10px 14px 12px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
+.chat-input{flex:1;border:1px solid var(--border);border-radius:20px;padding:9px 14px;font-family:'Noto Sans JP',sans-serif;font-size:13px;background:var(--surface2);color:var(--text);resize:none;max-height:100px;overflow-y:auto;outline:none;line-height:1.4}
+.chat-input:focus{border-color:var(--accent)}
+.send-btn{width:38px;height:38px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:#2A3140;transition:opacity .2s}
+
+
+.typing-indicator{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-radius:16px;border-bottom-left-radius:3px;padding:10px 14px;display:flex;gap:4px;align-items:center}
+.typing-dot{width:6px;height:6px;background:var(--text-muted);border-radius:50%;animation:bounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.chara-selector{display:flex;gap:6px;padding:8px 14px 4px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--surface);border-top:1px solid var(--border)}
+.chara-selector::-webkit-scrollbar{display:none}
+.chara-sel-btn{white-space:nowrap;border:1px solid var(--border);border-radius:16px;padding:4px 12px;font-size:11px;cursor:pointer;color:var(--text-muted);flex-shrink:0;background:var(--surface2);transition:all .15s;letter-spacing:.04em;font-family:'Noto Sans JP',sans-serif;user-select:none}
+.chara-sel-btn.active{background:var(--accent);color:#2A3140;border-color:var(--accent);font-weight:700}
+.chara-sel-btn.selected-multi{background:var(--surface3);color:var(--accent);border-color:var(--accent)}
+
+/* ── MENU TAB ── */
+.menu-scroll{overflow-y:auto;flex:1;padding:16px;display:flex;flex-direction:column;gap:12px}
+.menu-add-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.menu-head{padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.12em;color:var(--text-sub)}
+.menu-form{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.menu-input{border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;background:var(--surface2);color:var(--text);outline:none;width:100%}
+.menu-input:focus{border-color:var(--accent)}
+.menu-input::placeholder{color:var(--text-muted)}
+.menu-pfc-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.menu-pfc-wrap{display:flex;flex-direction:column;gap:3px}
+.menu-pfc-label{font-size:9px;color:var(--text-muted);letter-spacing:.08em;padding-left:2px}
+.menu-add-btn{width:100%;background:var(--accent);color:#2A3140;border:none;border-radius:8px;padding:10px;font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;font-weight:500;letter-spacing:.05em}
+.menu-list{display:flex;flex-direction:column;gap:8px}
+.menu-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+.menu-item:hover{border-color:var(--accent)}
+.menu-item:active{background:var(--surface2)}
+.menu-item-info{flex:1}
+.menu-item-name{font-size:14px;color:var(--text)}
+.menu-item-nut{font-size:10px;color:var(--text-muted);margin-top:3px;letter-spacing:.03em}
+.menu-item-del{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.menu-item-del:hover{border-color:var(--red);color:var(--red)}
+.menu-empty{text-align:center;color:var(--text-muted);font-size:12px;padding:20px;letter-spacing:.05em}
+.menu-tap-hint{font-size:11px;color:var(--text-muted);text-align:center;padding:4px 0 8px;letter-spacing:.04em}
+
+/* ── GOAL TAB ── */
+.goal-scroll{overflow-y:auto;flex:1;padding:16px 16px 60px;display:flex;flex-direction:column;gap:14px}
+.goal-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.goal-section-head{padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.12em;color:var(--text-sub)}
+.goal-form{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.goal-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.goal-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.goal-save-btn{width:100%;background:var(--accent);color:#2A3140;border:none;border-radius:8px;padding:10px;font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;font-weight:500;letter-spacing:.05em}
+.goal-note{font-size:11px;color:var(--text-muted);line-height:1.6;padding:0 2px}
+
+/* ── ID CARD ── */
+.id-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.id-top{display:flex;gap:14px;padding:16px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.id-photo{width:80px;height:96px;flex-shrink:0;background:var(--surface3);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:44px;overflow:hidden}
+.id-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.id-name{font-size:17px;color:var(--text);letter-spacing:.06em;font-family:'Cormorant Garamond',serif;font-weight:400;margin-bottom:2px}
+.id-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.id-row{display:flex;align-items:baseline;gap:6px}
+.id-label{font-size:9px;color:var(--text-muted);letter-spacing:.1em;flex-shrink:0}
+.id-val{font-size:12px;color:var(--text-sub)}
+.id-bottom{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.id-section-label{font-size:9px;color:var(--accent2);letter-spacing:.12em;border-bottom:1px solid var(--border);padding-bottom:4px}
+.id-text{font-size:12px;color:var(--text-sub);line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.prof-tabs{display:flex;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border)}
+.prof-tabs::-webkit-scrollbar{display:none}
+.prof-tab{flex-shrink:0;padding:10px 14px;font-size:11px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;letter-spacing:.06em;white-space:nowrap;transition:all .2s;font-family:'Noto Sans JP',sans-serif}
+.prof-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.prof-content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.prof-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.prof-card-head{padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.prof-avatar{font-size:28px;line-height:1}
+.prof-name{font-size:16px;color:var(--text);letter-spacing:.06em}
+.prof-badge{font-size:9px;color:var(--text-muted);background:var(--surface3);border-radius:4px;padding:2px 6px;letter-spacing:.05em}
+.prof-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.prof-field{display:flex;flex-direction:column;gap:4px}
+.prof-field-label{font-size:9px;color:var(--text-muted);letter-spacing:.1em}
+.prof-field-val{font-size:12px;color:var(--text-sub);line-height:1.6}
+.prof-edit-btn{margin:0 16px 14px;background:none;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--text-muted);cursor:pointer;font-family:'Noto Sans JP',sans-serif;letter-spacing:.06em;width:calc(100% - 32px);transition:border-color .15s}
+.prof-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
+.prof-edit-btn-sm{align-self:flex-end;margin-top:6px;background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--text-muted);cursor:pointer;font-family:'Noto Sans JP',sans-serif;letter-spacing:.05em;transition:border-color .15s}
+.prof-edit-btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.prof-user-stat{display:flex;align-items:baseline;gap:6px}
+.prof-user-num{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--accent)}
+.prof-user-unit{font-size:11px;color:var(--text-muted)}
+.prof-user-diff{font-size:12px;font-weight:500}
+.prof-user-diff.plus{color:var(--red)}
+.prof-user-diff.minus{color:var(--green)}
+.prof-user-diff.zero{color:var(--text-muted)}
+.chara-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px}
+.chara-card-info{flex:1}
+.chara-card-name{font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px}
+.chara-card-badge{font-size:9px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;letter-spacing:.05em}
+.chara-preset-badge{font-size:9px;color:var(--accent);background:var(--accent-dim);border-radius:4px;padding:1px 5px;letter-spacing:.05em}
+.chara-card-desc{font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+
+/* TOAST */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface3);color:var(--text);border:1px solid var(--border);padding:9px 18px;border-radius:20px;font-size:12px;opacity:0;transition:all .25s;z-index:999;pointer-events:none;white-space:nowrap;letter-spacing:.04em}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
+</style>
+</head>
+<body>
+
+
+<!-- ========== 初回セットアップガイド ========== -->
+<div id="setupGuide" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px;box-sizing:border-box">
+  <div style="max-width:420px;margin:0 auto;background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border)">
+    <div style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--accent);letter-spacing:.1em;margin-bottom:4px">からだノート</div>
+    <div style="text-align:center;font-size:11px;color:var(--text-muted);letter-spacing:.08em;margin-bottom:20px">AIキャラと話しながら記録するダイエット管理アプリ</div>
+    
+    <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--accent);font-weight:500;margin-bottom:8px">🚀 はじめに</div>
+      <div style="font-size:11px;color:var(--text-sub);line-height:1.7">
+        このアプリはAI（Gemini / Claude API）を使います。<br>
+        まずAPIキーを設定し、キャラクターを作ってください。
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text);font-weight:500;margin-bottom:10px">セットアップ手順</div>
+    
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-sub);line-height:1.6">
+        <span style="color:var(--accent);font-weight:600">① APIキーを設定</span><br>
+        ⚙ GOALタブ → 「APIキー設定」にGemini APIキーを入力
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-sub);line-height:1.6">
+        <span style="color:var(--accent);font-weight:600">② キャラクターを作成</span><br>
+        👤 CHARAタブ → キャラ1〜5のタブを選んで「✎ 編集」から名前・性格・口調を設定
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-sub);line-height:1.6">
+        <span style="color:var(--accent);font-weight:600">③ シェアハウス設定（任意）</span><br>
+        🏠 CHARAタブ → シェアハウスタブで舞台設定や共有情報を入力
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-sub);line-height:1.6">
+        <span style="color:var(--accent);font-weight:600">④ あなたの情報を設定</span><br>
+        👤 CHARAタブ → 👤タブから名前・身長・スタート体重などを登録
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-sub);line-height:1.6">
+        <span style="color:var(--accent);font-weight:600">⑤ 目標を設定してスタート！</span><br>
+        ⚙ GOALタブ → カロリー・栄養素の目標を設定
+      </div>
+    </div>
+
+    <div style="background:rgba(205,225,225,0.1);border:1px solid var(--accent-dim);border-radius:8px;padding:10px 12px;font-size:10px;color:var(--text-muted);line-height:1.7;margin-bottom:20px">
+      💡 Gemini APIキーは <a href="https://aistudio.google.com/" target="_blank" style="color:var(--accent)">Google AI Studio</a> で無料取得できます
+    </div>
+
+    <button onclick="closeSetupGuide()" style="width:100%;background:var(--accent);color:#2A3140;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:500;cursor:pointer;letter-spacing:.05em">
+      はじめる →
+    </button>
+  </div>
+</div>
+
+<header>
+  <div class="header-weekly">
+    <div class="hw-row">
+      <span class="hw-name">体重</span><b id="hwWeight">--</b><span id="hwWeightDiff"></span>
+      <span class="hw-sep">·</span>
+      <span class="hw-name">体脂肪</span><b id="hwFat">--</b><span id="hwFatDiff"></span>
+    </div>
+    <div class="fat-target-row" id="fatTargetRow"></div>
+  </div>
+  <div class="hdate" id="headerDate"></div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('calendar')"><span class="tab-icon">◻</span>CAL</div>
+  <div class="tab" onclick="switchTab('chat')"><span class="tab-icon">◈</span>CHAT</div>
+  <div class="tab" onclick="switchTab('menu')"><span class="tab-icon">◆</span>MENU</div>
+  <div class="tab" onclick="switchTab('chara')"><span class="tab-icon">◇</span>CHARA</div>
+  <div class="tab" onclick="switchTab('goal')"><span class="tab-icon">◎</span>OPTION</div>
+</div>
+
+<!-- ===== CALENDAR ===== -->
+<div class="page active" id="page-calendar">
+  <div class="cal-scroll">
+    <div class="cal-wrap">
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)">&#8249;</button>
+        <div class="cal-month" id="calMonth"></div>
+        <button onclick="changeMonth(1)">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="calGrid">
+        <div class="cal-dow">SUN</div><div class="cal-dow">MON</div><div class="cal-dow">TUE</div>
+        <div class="cal-dow">WED</div><div class="cal-dow">THU</div><div class="cal-dow">FRI</div><div class="cal-dow">SAT</div>
+      </div>
+    </div>
+    <div class="daily-detail" id="dailyDetail">
+      <div class="detail-header">
+        <span class="detail-header-title" id="detailHeader">TODAY</span>
+        <div class="detail-status" id="detailStatus"></div>
+      </div>
+      <div class="nutrition-bar" id="nutritionBar" style="display:none"></div>
+      <div class="record-list" id="recordList"><div class="no-records">— no records —</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHAT ===== -->
+<div class="page chat-page" id="page-chat">
+  <div class="chat-toolbar">
+    <button class="log-btn" id="logToggleBtn" onclick="toggleLogView()">📋 ログ</button>
+    <button class="log-btn" id="logSaveBtn" onclick="saveSelectedLog()" style="display:none">💾 選択範囲を保存</button>
+    <button class="log-btn" id="logCancelBtn" onclick="cancelLogSelect()" style="display:none">キャンセル</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chara-selector" id="charSelector">
+    <div class="chara-sel-btn active" data-key="random" onclick="selectChara('random')">RANDOM</div>
+    <div class="chara-sel-btn" data-key="char1" onclick="toggleMultiChara('char1')" id="selBtn1">キャラ1</div>
+    <div class="chara-sel-btn" data-key="char2" onclick="toggleMultiChara('char2')" id="selBtn2">キャラ2</div>
+    <div class="chara-sel-btn" data-key="char3" onclick="toggleMultiChara('char3')" id="selBtn3">キャラ3</div>
+    <div class="chara-sel-btn" data-key="char4" onclick="toggleMultiChara('char4')" id="selBtn4">キャラ4</div>
+    <div class="chara-sel-btn" data-key="char5" onclick="toggleMultiChara('char5')" id="selBtn5">キャラ5</div>
+  </div>
+  <div class="chat-input-wrap">
+    <textarea class="chat-input" id="chatInput" placeholder="メッセージ…" rows="1"
+      oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">▶</button>
+  </div>
+</div>
+
+<!-- ===== MENU ===== -->
+<div class="page" id="page-menu">
+  <div class="menu-add-card" style="flex-shrink:0;border-radius:0;border-left:none;border-right:none;border-top:none">
+    <div class="menu-head">◆ ADD MENU</div>
+    <div class="menu-form">
+      <input class="menu-input" id="menuName" placeholder="メニュー名（例：納豆定食）" maxlength="30">
+      <div class="menu-pfc-row">
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">KCAL</span><input class="menu-input" id="menuKcal" type="number" placeholder="500"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">P (g)</span><input class="menu-input" id="menuP" type="number" placeholder="20"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">F (g)</span><input class="menu-input" id="menuF" type="number" placeholder="15"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">C (g)</span><input class="menu-input" id="menuC" type="number" placeholder="60"></div>
+      </div>
+      <button class="menu-add-btn" onclick="addMenuItem()">登録する</button>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <span class="menu-tap-hint" style="padding:0">タップで即記録</span>
+      <button onclick="clearAllMenus()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text-muted);cursor:pointer;font-family:'Noto Sans JP',sans-serif;">全削除</button>
+    </div>
+    <div class="menu-list" id="menuList"><div class="menu-empty">— まだ登録されていません —</div></div>
+  </div>
+</div>
+
+<!-- ===== CHARA ===== -->
+<div class="page" id="page-chara">
+  <!-- プロフィールタブバー -->
+  <div class="prof-tabs" id="profTabs">
+    <div class="prof-tab active" data-prof="char1" onclick="switchProf('char1')" id="profTab1">キャラ1</div>
+    <div class="prof-tab" data-prof="char2" onclick="switchProf('char2')" id="profTab2">キャラ2</div>
+    <div class="prof-tab" data-prof="char3" onclick="switchProf('char3')" id="profTab3">キャラ3</div>
+    <div class="prof-tab" data-prof="char4" onclick="switchProf('char4')" id="profTab4">キャラ4</div>
+    <div class="prof-tab" data-prof="char5" onclick="switchProf('char5')" id="profTab5">キャラ5</div>
+    <div class="prof-tab" data-prof="sharehouse" onclick="switchProf('sharehouse')">🏠</div>
+    <div class="prof-tab" data-prof="user" onclick="switchProf('user')">👤</div>
+  </div>
+  <!-- プロフィールコンテンツ -->
+  <div class="prof-content" id="profContent"></div>
+</div>
+
+<!-- ===== GOAL (OPTION) ===== -->
+<div class="page" id="page-goal">
+  <div class="goal-scroll">
+    <div class="goal-section">
+      <div class="goal-section-head">◈ AI設定</div>
+      <div class="goal-form">
+        <p class="goal-note">Gemini APIキーを入力するとGeminiで動作します。空の場合はClaude（デフォルト）を使用します。</p>
+        <div class="menu-pfc-wrap">
+          <span class="menu-pfc-label">Gemini APIキー</span>
+          <input class="menu-input" id="geminiApiKey" type="password" placeholder="AIza...">
+        </div>
+        <button class="goal-save-btn" onclick="saveApiKey()">保存する</button>
+      </div>
+    </div>
+    <div class="goal-section">
+      <div class="goal-section-head">◈ 特別な日の設定</div>
+      <div class="goal-form">
+        <p class="goal-note">5種類まで自由に定義できます。「登山」「パーティー」などカスタム可能。絵文字・名前・カロリー計算・キャラリアクション指示を設定してください。</p>
+        <div id="specialDaysForm"></div>
+        <button class="goal-save-btn" onclick="saveSpecialDays()">特別な日の設定を保存</button>
+      </div>
+    </div>
+    <div class="goal-section">
+      <div class="goal-section-head">◈ データ管理</div>
+      <div class="goal-form">
+        <p class="goal-note">【エクスポート】ボタンを押すとデータがテキストで表示されます。全選択してコピーしてください。<br>【インポート】欄にコピーしたテキストを貼り付けてインポートボタンを押してください。</p>
+        <button class="goal-save-btn" onclick="showExportText()">📤 エクスポート（テキスト表示）</button>
+        <textarea id="exportTextArea" class="menu-input" style="height:80px;resize:none;font-size:10px;display:none;margin-top:4px" readonly onclick="this.select()"></textarea>
+        <button id="exportCopyBtn" class="goal-save-btn" style="display:none;background:var(--surface2);color:var(--text);border:1px solid var(--border);margin-top:4px" onclick="copyExportText()">📋 全選択してコピー</button>
+        <div style="height:12px"></div>
+        <textarea id="importTextArea" class="menu-input" style="height:80px;resize:none;font-size:10px;margin-top:4px" placeholder="ここにエクスポートしたテキストを貼り付け…"></textarea>
+        <button class="goal-save-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);margin-top:4px" onclick="importFromText()">📥 インポート</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== DATA =====================
+const KEY = 'karada_v3';
+function loadData(){
+  try{return JSON.parse(localStorage.getItem(KEY))||{records:{},weights:{},weekly:[],startDate:null,flags:{}};}
+  catch{return{records:{},weights:{},weekly:[],startDate:null,flags:{}};}
+}
+function saveData(d){localStorage.setItem(KEY,JSON.stringify(d));}
+
+function todayKey(){
+  const n=new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
+function nowTime(){const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}}`;}
+
+function dateKey(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function isPast(key){return key<todayKey();}
+function isToday(key){return key===todayKey();}
+function isFuture(key){return key>todayKey();}
+
+// ===================== GOAL SETTINGS =====================
+const GOAL_KEY='karada_goals';
+const START_KEY='karada_start';
+const DEFAULT_GOAL={kcalMin:1500,kcalMax:1800,fatMax:55,p:90,f:45,c:210};
+function loadGoalSettings(){
+  try{return Object.assign({},DEFAULT_GOAL,JSON.parse(localStorage.getItem(GOAL_KEY))||{});}
+  catch{return{...DEFAULT_GOAL};}
+}
+function saveGoalSettings(){
+  const kcalMin=parseFloat(document.getElementById('goalKcalMin').value)||1500;
+  const kcalMax=parseFloat(document.getElementById('goalKcalMax').value)||1800;
+  const fatMax=parseFloat(document.getElementById('goalFatMax').value)||55;
+  const p=parseFloat(document.getElementById('goalP').value)||90;
+  const f=parseFloat(document.getElementById('goalF').value)||45;
+  const c=parseFloat(document.getElementById('goalC').value)||210;
+  localStorage.setItem(GOAL_KEY,JSON.stringify({kcalMin,kcalMax,fatMax,p,f,c}));
+  showToast('目標設定を保存しました');
+  renderCalendar();
+}
+function saveStartRecord(){
+  const w=parseFloat(document.getElementById('startWeight').value);
+  const fat=parseFloat(document.getElementById('startFatKg').value);
+  if(isNaN(w)&&isNaN(fat)){showToast('値を入力してください');return;}
+  const rec={};
+  if(!isNaN(w)) rec.weight=w;
+  if(!isNaN(fat)) rec.fatKg=fat;
+  rec.date=todayKey();
+  localStorage.setItem(START_KEY,JSON.stringify(rec));
+  showToast('スタート記録を保存しました');
+  renderStartRecordDisplay();
+  updateHeaderWeekly();
+}
+function renderStartRecordDisplay(){
+  const el=document.getElementById('startRecordDisplay');
+  if(!el) return;
+  try{
+    const rec=JSON.parse(localStorage.getItem(START_KEY));
+    if(rec) el.textContent=`記録済み（${rec.date}）: 体重${rec.weight||'—'}kg / 体脂肪量${rec.fatKg||'—'}kg`;
+    else el.textContent='';
+  }catch{el.textContent='';}
+}
+function fillGoalFormValues(){
+  const g=loadGoalSettings();
+  const ids={goalKcalMin:g.kcalMin,goalKcalMax:g.kcalMax,goalFatMax:g.fatMax,goalP:g.p,goalF:g.f,goalC:g.c};
+  for(const id in ids){const el=document.getElementById(id);if(el) el.value=ids[id];}
+}
+
+// ===================== 目標体脂肪量（カレンダー凡例下に表示） =====================
+const FAT_TARGET_KEY='karada_fat_targets';
+const DEFAULT_FAT_TARGETS=[{pct:28,kg:17},{pct:25,kg:15},{pct:22,kg:13}];
+function loadFatTargets(){
+  try{
+    const v=JSON.parse(localStorage.getItem(FAT_TARGET_KEY));
+    if(Array.isArray(v)&&v.length===3) return v;
+    return DEFAULT_FAT_TARGETS;
+  }catch{return DEFAULT_FAT_TARGETS;}
+}
+function saveFatTargets(){
+  const targets=[1,2,3].map(i=>({
+    pct:parseFloat(document.getElementById('ftPct'+i).value)||0,
+    kg:parseFloat(document.getElementById('ftKg'+i).value)||0
+  }));
+  localStorage.setItem(FAT_TARGET_KEY,JSON.stringify(targets));
+  showToast('目標体脂肪量を保存しました');
+  renderFatTargets();
+}
+function fillFatTargetFormValues(){
+  const targets=loadFatTargets();
+  targets.forEach((t,i)=>{
+    const pctEl=document.getElementById('ftPct'+(i+1));
+    const kgEl=document.getElementById('ftKg'+(i+1));
+    if(pctEl) pctEl.value=t.pct;
+    if(kgEl) kgEl.value=t.kg;
+  });
+}
+function renderFatTargets(){
+  const el=document.getElementById('fatTargetRow');
+  if(!el) return;
+  const targets=loadFatTargets();
+  el.innerHTML='<span class="ft-label">目標体脂肪量</span>'+
+    targets.map(t=>`<span>${t.pct}%→${t.kg}kg</span>`).join('');
+}
+
+// ===================== ヘッダー：土曜日の体重・体脂肪量 =====================
+function updateHeaderWeekly(){
+  const data=loadData();
+  const weekly=(data.weekly||[]).slice().sort((a,b)=>a.date<b.date?1:-1); // 新しい順
+  let w=null,f=null;
+  if(weekly.length){
+    w=weekly[0].weight;f=weekly[0].fatKg;
+  } else {
+    try{
+      const start=JSON.parse(localStorage.getItem(START_KEY));
+      if(start){w=start.weight;f=start.fatKg;}
+    }catch{}
+  }
+  const wEl=document.getElementById('hwWeight');
+  const fEl=document.getElementById('hwFat');
+  if(wEl) wEl.textContent=(w!=null)?`${w}kg`:'--';
+  if(fEl) fEl.textContent=(f!=null)?`${f}kg`:'--';
+
+  // スタート時からの±差分
+  let sw=null,sf=null;
+  try{
+    const start=JSON.parse(localStorage.getItem(START_KEY));
+    if(start){sw=start.weight;sf=start.fatKg;}
+  }catch{}
+  function diffText(current,start){
+    if(current==null||start==null) return '';
+    const d=Math.round((current-start)*10)/10;
+    const cls=d>0?'plus':d<0?'minus':'zero';
+    const sign=d>0?'+':'';
+    return `<span class="hw-diff ${cls}">（${sign}${d}kg）</span>`;
+  }
+  const wDiffEl=document.getElementById('hwWeightDiff');
+  const fDiffEl=document.getElementById('hwFatDiff');
+  // weekly記録がスタート記録そのものの場合は差分0なので表示不要にする
+  const hasWeeklyEntry=weekly.length>0;
+  if(wDiffEl) wDiffEl.innerHTML=(hasWeeklyEntry&&w!=null&&sw!=null)?diffText(w,sw):'';
+  if(fDiffEl) fDiffEl.innerHTML=(hasWeeklyEntry&&f!=null&&sf!=null)?diffText(f,sf):'';
+
+  renderFatTargets();
+}
+
+// 達成判定
+function judgeDay(key){
+  const data=loadData();
+  const flags=data.flags||{};
+  const ft=flags[key];
+  if(ft==='hiking'||ft==='party') return 'special';
+  if(ft&&ft.startsWith('custom-')){
+    const idx=parseInt(ft.replace('custom-',''));
+    const sdays=loadSpecialDays();
+    const sd=sdays[idx];
+    if(sd&&sd.name&&sd.skipKcal) return 'special';
+  }
+  if(isToday(key)||isFuture(key)) return 'neutral';
+  const g=loadGoalSettings();
+  const mealRecs=(data.records[key]||[]).filter(r=>r.type==='meal');
+  if(!mealRecs.length) return 'neutral';
+  const n=calcDayNutritionFromRecs(mealRecs);
+  const kcalOk=n.kcal>=g.kcalMin&&n.kcal<=g.kcalMax;
+  const fatOk=n.f<=g.fatMax;
+  return(kcalOk&&fatOk)?'achieved':'failed';
+}
+
+const KARASU_PROF_B64=null; // 配布版：画像なし
+const SHAREHOUSE_IMG_B64=null; // 配布版：画像なし
+const GAL_PROF_B64=null; // 配布版：画像なし
+const TORATANI_PROF_B64=null; // 配布版：画像なし
+const KOSAKA_PROF_B64=null; // 配布版：画像なし
+const KEI_PROF_B64=null; // 配布版：画像なし
+const KEI_ICON_B64=null; // 配布版：画像なし
+// ===================== CHARACTERS =====================
+// SHAREHOUSE設定はlocalStorageで管理（「シェアハウス設定」タブで編集可能）
+const SHAREHOUSE=''; // デフォルト空：CHARAタブ→シェアハウス設定で自由に記入してください
+
+// ===================== プリセットキャラ =====================
+// 配布版：キャラクター設定はCHARAタブで自由に入力してください
+// デフォルトは5つのブランクスロット。名前・性格・口調などを自由に設定できます。
+const DEFAULT_PRESETS={
+  char1:{name:'キャラ1',avatar:'✦',gender:'',first:'',second:'',
+    personality:'',example:'',toneNote:'',tone:'返答は短く。会話のみ返すこと。JSONは絶対に出力しない。'},
+  char2:{name:'キャラ2',avatar:'✦',gender:'',first:'',second:'',
+    personality:'',example:'',toneNote:'',tone:'返答は短く。会話のみ返すこと。JSONは絶対に出力しない。'},
+  char3:{name:'キャラ3',avatar:'✦',gender:'',first:'',second:'',
+    personality:'',example:'',toneNote:'',tone:'返答は短く。会話のみ返すこと。JSONは絶対に出力しない。'},
+  char4:{name:'キャラ4',avatar:'✦',gender:'',first:'',second:'',
+    personality:'',example:'',toneNote:'',tone:'返答は短く。会話のみ返すこと。JSONは絶対に出力しない。'},
+  char5:{name:'キャラ5',avatar:'✦',gender:'',first:'',second:'',
+    personality:'',example:'',toneNote:'',tone:'返答は短く。会話のみ返すこと。JSONは絶対に出力しない。'},
+};
+const RANDOM_CHARS=['char1','char2','char3','char4','char5'];
+const PRESET_OVERRIDE_KEY='karada_preset_overrides';
+
+function loadPresetOverrides(){
+  try{return JSON.parse(localStorage.getItem(PRESET_OVERRIDE_KEY))||{};}catch{return{};}
+}
+function savePresetOverrides(o){localStorage.setItem(PRESET_OVERRIDE_KEY,JSON.stringify(o));}
+function getPresetData(charKey){
+  const base=DEFAULT_PRESETS[charKey];
+  if(!base) return null;
+  const overrides=loadPresetOverrides();
+  return{...base,...(overrides[charKey]||{})};
+}
+function buildPresetSystem(data){
+  const profile=loadUserProfile();
+  const userName=profile.name||'あなた';
+  // 体脂肪フラグ連動
+  let fatBehaviorStr='';
+  if(data.fatBehavior){
+    fatBehaviorStr=`\n\n【体脂肪フラグ連動】\n${data.fatBehavior}`;
+  }
+  return `あなたは「${data.name}」というキャラクターです。一人称：${data.first}、二人称：${data.second}。
+性格・口調：${data.personality}
+${data.example?data.example+'\n':''}${data.toneNote?'口調の補足：'+data.toneNote+'\n':''}${data.tone}
+重要：会話履歴に他のキャラのセリフが出てきても、その口調を真似ないこと。常に「${data.name}」自身の口調を保つ。ユーザーは「${userName}」と呼ぶこと（「ユーザー」とは呼ばない）。${fatBehaviorStr}
+${getFullSharehouse()}`;
+}
+
+function getTimeSlot(){
+  const h=new Date().getHours();
+  if(h>=5&&h<10) return 'morning';if(h>=10&&h<12) return 'midmorning';
+  if(h>=12&&h<14) return 'lunch';if(h>=14&&h<17) return 'afternoon';
+  if(h>=17&&h<20) return 'evening';if(h>=20&&h<23) return 'night';
+  return 'latenight';
+}
+const GREETINGS={
+  char1:{morning:['おはよう。'],midmorning:[''],lunch:[''],afternoon:[''],evening:[''],night:[''],latenight:['']},
+  char2:{morning:['おはよう。'],midmorning:[''],lunch:[''],afternoon:[''],evening:[''],night:[''],latenight:['']},
+  char3:{morning:['おはよう。'],midmorning:[''],lunch:[''],afternoon:[''],evening:[''],night:[''],latenight:['']},
+  char4:{morning:['おはよう。'],midmorning:[''],lunch:[''],afternoon:[''],evening:[''],night:[''],latenight:['']},
+  char5:{morning:['おはよう。'],midmorning:[''],lunch:[''],afternoon:[''],evening:[''],night:[''],latenight:['']},
+};
+function getRandomGreeting(){
+  const slot=getTimeSlot();
+  const charKey=Object.keys(DEFAULT_PRESETS)[Math.floor(Math.random()*Object.keys(DEFAULT_PRESETS).length)];
+  const list=GREETINGS[charKey][slot];
+  return{charKey,text:list[Math.floor(Math.random()*list.length)]};
+}
+let currentChar='char1';
+
+// ===================== MULTI CHARA SELECTOR =====================
+let selectedCharKeys=new Set(); // 空=RANDOM
+
+function selectChara(key){
+  // RANDOMボタン押下
+  selectedCharKeys.clear();
+  document.querySelectorAll('.chara-sel-btn').forEach(b=>{
+    b.classList.remove('active','selected-multi');
+    if(b.dataset.key==='random') b.classList.add('active');
+  });
+}
+function toggleMultiChara(key){
+  // RANDOM解除
+  document.querySelector('.chara-sel-btn[data-key="random"]').classList.remove('active');
+  const btn=document.querySelector(`.chara-sel-btn[data-key="${key}"]`);
+  if(selectedCharKeys.has(key)){
+    selectedCharKeys.delete(key);
+    btn.classList.remove('selected-multi','active');
+  } else {
+    selectedCharKeys.add(key);
+    btn.classList.add('selected-multi','active');
+  }
+  // 全解除でRANDOMに戻す
+  if(selectedCharKeys.size===0){
+    document.querySelector('.chara-sel-btn[data-key="random"]').classList.add('active');
+  }
+  // 立ち絵を最後に選んだキャラに更新
+  if(selectedCharKeys.size>0) updateCharUI([...selectedCharKeys][selectedCharKeys.size-1]);
+}
+function getSelectedChars(){
+  if(selectedCharKeys.size===0){
+    // ランダム1人
+    const customs=loadCustomCharas();
+    const pool=[...Object.keys(DEFAULT_PRESETS),...customs.map(c=>'custom_'+c.id)];
+    return[pool[Math.floor(Math.random()*pool.length)]];
+  }
+  return[...selectedCharKeys];
+}
+
+function pickChar(text){
+  // トイレ系キーワードで特定キャラを出したい場合はここをカスタマイズ
+  return getSelectedChars();
+}
+
+function getCharDef(charKey){
+  if(charKey.startsWith('custom_')){
+    const id=parseInt(charKey.replace('custom_',''));
+    const c=loadCustomCharas().find(x=>x.id===id);
+    if(c) return{name:c.name,avatar:'✦',system:buildCustomCharaSystem(c)};
+  }
+  const data=getPresetData(charKey)||getPresetData('char1');
+  return{name:data.name,avatar:data.avatar,system:buildPresetSystem(data)};
+}
+
+function updateCharUI(charKey){
+  currentChar=charKey;
+  const illust=document.getElementById('charaIllust');
+  if(!illust) return;
+  illust.className='chara-illust';
+  // 配布版：アバット絵文字をキャラ定義から取得
+  const data=getPresetData(charKey)||getCustomCharaDef(charKey);
+  illust.textContent=data?.avatar||'✦';
+}
+function getCustomCharaDef(charKey){
+  if(!charKey.startsWith('custom_')) return null;
+  const id=parseInt(charKey.replace('custom_',''));
+  const c=loadCustomCharas().find(x=>x.id===id);
+  return c?{avatar:'✦'}:null;
+}
+// キャラボタンのラベルを最新のキャラ名で更新
+function updateCharButtonLabels(){
+  ['char1','char2','char3','char4','char5'].forEach((key,i)=>{
+    const p=getPresetData(key);
+    const name=p?.name||('キャラ'+(i+1));
+    // CHARAタブのプロフタブ
+    const profTab=document.getElementById('profTab'+(i+1));
+    if(profTab) profTab.textContent=name;
+    // チャット画面のキャラ選択ボタン
+    const selBtn=document.getElementById('selBtn'+(i+1));
+    if(selBtn) selBtn.textContent=name;
+  });
+}
+
+
+// ===================== HEADER =====================
+function updateHeaderDate(){
+  const d=new Date();
+  const days=['日','月','火','水','木','金','土'];
+  document.getElementById('headerDate').textContent=`${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]})`;
+}
+updateHeaderDate();
+
+// ===================== SETUP GUIDE =====================
+function checkFirstLaunch(){
+  const key='karada_setup_done';
+  if(!localStorage.getItem(key)){
+    document.getElementById('setupGuide').style.display='block';
+  }
+}
+function closeSetupGuide(){
+  document.getElementById('setupGuide').style.display='none';
+  localStorage.setItem('karada_setup_done','1');
+  updateCharButtonLabels();
+}
+// アプリ起動時に呼ぶ
+checkFirstLaunch();
+updateCharButtonLabels();
+
+
+// ===================== TABS =====================
+let currentTab='calendar';
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  const idx=['calendar','chat','menu','chara','goal'].indexOf(tab);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  if(tab==='calendar') renderCalendar();
+  if(tab==='menu') renderMenuList();
+  if(tab==='chara'){switchProf(currentProf||'char1');updateCharButtonLabels();}
+  if(tab==='goal'){initApiKeyForm();} // APIキー入力欄を初期化
+}
+
+// ===================== CUSTOM CHARA =====================
+function loadCustomCharas(){try{return JSON.parse(localStorage.getItem('karada_charas'))||[];}catch{return[];}}
+function saveCustomCharas(c){localStorage.setItem('karada_charas',JSON.stringify(c));}
+// ===================== SHAREHOUSE SETTING =====================
+const SHAREHOUSE_CUSTOM_KEY='karada_sharehouse';
+function loadSharehouseSetting(){
+  try{return localStorage.getItem(SHAREHOUSE_CUSTOM_KEY)||'';}catch{return '';}
+}
+function saveSharehouseSetting(v){localStorage.setItem(SHAREHOUSE_CUSTOM_KEY,v);}
+// システムプロンプトのシェアハウス情報（デフォルト＋カスタム）
+function getFullSharehouse(){
+  const custom=loadSharehouseSetting();
+  return custom||''; // 配布版：ユーザー入力のみ使用
+}
+
+// ===================== PROFILE TAB =====================
+let currentProf='char1';
+function switchProf(key){
+  currentProf=key;
+  document.querySelectorAll('.prof-tab').forEach(t=>t.classList.toggle('active',t.dataset.prof===key));
+  renderProfContent(key);
+}
+function renderProfContent(key){
+  const el=document.getElementById('profContent');
+  if(Object.keys(DEFAULT_PRESETS).includes(key)){
+    el.innerHTML=buildCharaProfileHTML(key);
+  } else if(key==='sharehouse'){
+    el.innerHTML=buildSharehouseHTML();
+  } else if(key==='user'){
+    el.innerHTML=buildUserProfileHTML();
+    fillGoalFormValues();
+  }
+}
+
+function buildCharaProfileHTML(key){
+  const p=getPresetData(key);
+  const isEditing=editingPresetKey===key;
+  const imgSrc=null; // 配布版：プロフィール画像なし
+  const avatarBlock=imgSrc
+    ? `<div class="id-photo" style="padding:0;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;object-position:top center"></div>`
+    : `<div class="id-photo">${p.avatar}</div>`;
+
+  if(isEditing){
+    return `<div class="id-card">
+      <div class="id-top">
+        ${avatarBlock}
+        <div class="id-info">
+          <div class="id-name">${p.name}<span class="prof-badge" style="margin-left:6px">${p.gender}</span></div>
+          <div class="id-meta-grid">
+            <div class="menu-pfc-wrap"><span class="menu-pfc-label">一人称</span><input class="menu-input" id="presetFirst_${key}" value="${p.first.replace(/"/g,'&quot;')}"></div>
+            <div class="menu-pfc-wrap"><span class="menu-pfc-label">二人称</span><input class="menu-input" id="presetSecond_${key}" value="${p.second.replace(/"/g,'&quot;')}"></div>
+          </div>
+        </div>
+      </div>
+      <div class="id-bottom">
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">性格・口調</span><textarea class="menu-input" id="presetPersonality_${key}" style="height:90px;resize:none;line-height:1.5">${p.personality}</textarea></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">セリフ例（任意）</span><input class="menu-input" id="presetExample_${key}" value="${(p.example||'').replace(/"/g,'&quot;')}"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">口調の補足（任意）</span><input class="menu-input" id="presetTone_${key}" value="${(p.toneNote||'').replace(/"/g,'&quot;')}" placeholder="例：語尾に「〜やん」をつける"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">体脂肪フラグ連動（任意・自由記入）</span><textarea class="menu-input" id="presetFatBehavior_${key}" style="height:70px;resize:none;line-height:1.5" placeholder="例：体脂肪が開始時より-0.5kg減の場合：少し焦った態度をとる&#10;例：体脂肪が開始時より-1.0kg減の場合：ぶっきらぼうになる">${(p.fatBehavior||'')}</textarea></div>
+        <div style="display:flex;gap:8px">
+          <button class="menu-add-btn" style="flex:1;width:auto" onclick="savePresetEdit('${key}')">保存</button>
+          <button class="menu-add-btn" style="flex:1;width:auto;background:var(--surface3);color:var(--text)" onclick="cancelPresetEdit()">キャンセル</button>
+        </div>
+        <button class="menu-add-btn" style="width:100%;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:11px;padding:6px" onclick="resetPresetEdit('${key}')">初期値に戻す</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="id-card">
+    <div class="id-top">
+      ${avatarBlock}
+      <div class="id-info">
+        <div class="id-name" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+          <span>${p.name}<span class="prof-badge" style="margin-left:6px">${p.gender}</span></span>
+          <button class="prof-edit-btn-sm" onclick="startPresetEdit('${key}')">✎ 編集</button>
+        </div>
+        <div class="id-row"><span class="id-label">一人称</span><span class="id-val">${p.first}</span></div>
+        <div class="id-row"><span class="id-label">二人称</span><span class="id-val">${p.second}</span></div>
+      </div>
+    </div>
+    <div class="id-bottom">
+      <div class="id-section-label">性格・口調</div>
+      <div class="id-text">${p.personality}</div>
+      ${p.example?`<div class="id-section-label" style="margin-top:8px">セリフ例</div><div class="id-text">${p.example}</div>`:''}
+      ${p.toneNote?`<div class="id-section-label" style="margin-top:8px">口調の補足</div><div class="id-text">${p.toneNote}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function buildSharehouseHTML(editing=false){
+  const custom=loadSharehouseSetting();
+  const shImg=typeof SHAREHOUSE_IMG_B64!=='undefined'?SHAREHOUSE_IMG_B64:null;
+  const photoBlock=shImg
+    ?`<div class="id-photo" style="padding:0;overflow:hidden"><img src="${shImg}" style="width:100%;height:100%;object-fit:cover;object-position:center"></div>`
+    :`<div class="id-photo" style="font-size:32px">🏠</div>`;
+
+  if(editing){
+    return `<div class="id-card">
+      <div class="id-top">
+        ${photoBlock}
+        <div class="id-info">
+          <div class="id-name" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+            <span>シェアハウス・舞台設定</span>
+            <button class="prof-edit-btn-sm" onclick="saveSharehouseCustom();renderProfContent('sharehouse')">完了</button>
+          </div>
+          
+        </div>
+      </div>
+      <div class="id-bottom">
+        <div class="id-section-label">シェアハウス・舞台設定</div>
+        <textarea class="menu-input" id="sharehouseCustomInput" style="height:120px;resize:none;line-height:1.6;margin-top:4px" placeholder="例：舞台はシェアハウス。登場人物：アリス（201号室・料理人）、ボブ（202号室・会社員）など。キャラ共通の設定や人間関係を書いてください。">${custom}</textarea>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="id-card">
+    <div class="id-top">
+      ${photoBlock}
+      <div class="id-info">
+        <div class="id-name" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+          <span>シェアハウス・舞台設定</span>
+          <button class="prof-edit-btn-sm" onclick="document.getElementById('profContent').innerHTML=buildSharehouseHTML(true)">✎ 編集</button>
+        </div>
+        
+      </div>
+    </div>
+    <div class="id-bottom">
+      <div class="id-section-label">シェアハウス設定</div>
+      ${custom?`<div class="id-text" style="font-size:11px">${custom.replace(/\n/g,'<br>')}</div>`:'<div class="id-text" style="font-size:11px;color:var(--text-muted)">まだ設定されていません。✎ 編集から入力してください。</div>'}
+    </div>
+  </div>`;
+}
+
+function saveSharehouseCustom(){
+  const v=document.getElementById('sharehouseCustomInput').value.trim();
+  saveSharehouseSetting(v);
+  showToast('シェアハウス設定を保存しました');
+}
+
+function buildUserProfileHTML(){
+  const data=loadData();
+  const profile=loadUserProfile();
+  let startRec=null;
+  try{startRec=JSON.parse(localStorage.getItem(START_KEY));}catch{}
+  const weekly=(data.weekly||[]).slice().sort((a,b)=>a.date<b.date?1:-1);
+  const latestWeight=weekly.length?weekly[0].weight:(data.weights?Object.values(data.weights).slice(-1)[0]:null);
+  const latestFat=weekly.length?weekly[0].fatKg:null;
+  const sw=startRec?.weight;
+  const sf=startRec?.fatKg;
+  function diffHTML(current,start){
+    if(current==null||start==null) return '';
+    const d=Math.round((current-start)*10)/10;
+    const cls=d>0?'plus':d<0?'minus':'zero';
+    const sign=d>0?'+':'';
+    return `<span class="prof-user-diff ${cls}">${sign}${d}kg</span>`;
+  }
+  const imgSrc=profile.img||null;
+  const photoBlock=imgSrc
+    ?`<div class="id-photo" style="padding:0;overflow:hidden"><img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;object-position:top center"></div>`
+    :`<div class="id-photo" style="font-size:32px">👤</div>`;
+  return `<div class="id-card">
+    <div class="id-top">
+      ${photoBlock}
+      <div class="id-info">
+        <div class="id-name">${profile.name||'あなた'}${profile.gender?`<span class="prof-badge" style="margin-left:6px">${profile.gender}</span>`:''}</div>
+        ${profile.height?`<div class="id-row"><span class="id-label">身長</span><span class="id-val">${profile.height}cm</span></div>`:''}
+        <div class="id-row"><span class="id-label">体重</span><span class="id-val">${sw??'--'}kg ${latestWeight!=null&&sw!=null?diffHTML(latestWeight,sw):''}</span></div>
+        <div class="id-row"><span class="id-label">体脂肪</span><span class="id-val">${sf??'--'}kg ${latestFat!=null&&sf!=null?diffHTML(latestFat,sf):''}</span></div>
+      </div>
+    </div>
+    <div class="id-bottom">
+      <div class="id-section-label">ユーザー設定</div>
+      <div class="goal-row" style="margin-top:6px">
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">名前</span><input class="menu-input" id="upName" value="${(profile.name||'あなた').replace(/"/g,'&quot;')}" placeholder="名前を入力"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">性別（任意）</span><input class="menu-input" id="upGender" value="${(profile.gender||'').replace(/"/g,'&quot;')}" placeholder="女性など"></div>
+      </div>
+      <div class="menu-pfc-wrap"><span class="menu-pfc-label">身長 (cm)</span><input class="menu-input" id="upHeight" type="number" step="0.1" placeholder="160" value="${profile.height??''}"></div>
+      <div class="menu-pfc-wrap" style="margin-top:6px"><span class="menu-pfc-label">プロフィール画像</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+          ${imgSrc?`<img id="upImgPreview" src="${imgSrc}" class="user-img-preview" style="display:block">`:`<div id="upImgPlaceholder" style="font-size:32px">👤</div><img id="upImgPreview" src="" class="user-img-preview" style="display:none">`}
+          <label style="cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;color:var(--text-sub)">📷 選択
+            <input type="file" accept="image/*" style="display:none" onchange="upLoadImg(this)">
+          </label>
+        </div>
+      </div>
+      <button class="menu-add-btn" style="margin-top:8px" onclick="saveUserProfile()">保存する</button>
+    </div>
+  </div>
+  <div class="id-card">
+    <div class="id-bottom">
+      <div class="id-section-label">スタート記録を更新</div>
+      <div class="goal-row" style="margin-top:6px">
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">開始体重 (kg)</span><input class="menu-input" id="startWeight" type="number" step="0.1" placeholder="60.0" value="${sw??''}"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">開始体脂肪量 (kg)</span><input class="menu-input" id="startFatKg" type="number" step="0.1" placeholder="15.0" value="${sf??''}"></div>
+      </div>
+      <button class="menu-add-btn" style="margin-top:8px" onclick="saveStartRecord();renderProfContent('user')">保存する</button>
+      ${latestWeight||latestFat?`<div class="id-section-label" style="margin-top:14px">最新測定（直近土曜日）</div>
+      ${latestWeight?`<div class="id-row"><span class="id-label">体重</span><span class="id-val">${latestWeight}kg</span></div>`:''}
+      ${latestFat?`<div class="id-row"><span class="id-label">体脂肪量</span><span class="id-val">${latestFat}kg</span></div>`:''}`:
+      ''}
+    </div>
+  </div>
+  <div class="id-card">
+    <div class="id-bottom">
+      <div class="id-section-label">◎ 達成条件</div>
+      <div class="goal-row">
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">カロリー 下限 (kcal)</span><input class="menu-input" id="goalKcalMin" type="number" placeholder="1500"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">カロリー 上限 (kcal)</span><input class="menu-input" id="goalKcalMax" type="number" placeholder="1800"></div>
+      </div>
+      <div class="menu-pfc-wrap"><span class="menu-pfc-label">脂質 上限 (g)</span><input class="menu-input" id="goalFatMax" type="number" placeholder="55"></div>
+      <div class="id-section-label" style="margin-top:10px">栄養目標（バー表示用）</div>
+      <div class="goal-row3">
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">P目標 (g)</span><input class="menu-input" id="goalP" type="number" placeholder="90"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">F目標 (g)</span><input class="menu-input" id="goalF" type="number" placeholder="45"></div>
+        <div class="menu-pfc-wrap"><span class="menu-pfc-label">C目標 (g)</span><input class="menu-input" id="goalC" type="number" placeholder="210"></div>
+      </div>
+      <button class="menu-add-btn" style="margin-top:8px" onclick="saveGoalSettings()">保存する</button>
+    </div>
+  </div>
+  `;
+}
+
+let editingPresetKey=null;
+function startPresetEdit(key){editingPresetKey=key;renderProfContent(key);}
+function cancelPresetEdit(){editingPresetKey=null;renderProfContent(currentProf);}
+function savePresetEdit(key){
+  const first=document.getElementById('presetFirst_'+key)?.value.trim();
+  const second=document.getElementById('presetSecond_'+key)?.value.trim();
+  const personality=document.getElementById('presetPersonality_'+key)?.value.trim();
+  const example=document.getElementById('presetExample_'+key)?.value.trim();
+  const toneNote=document.getElementById('presetTone_'+key)?.value.trim();
+  const fatBehavior=document.getElementById('presetFatBehavior_'+key)?.value.trim();
+  if(!personality){showToast('性格・口調を入力してください');return;}
+  const overrides=loadPresetOverrides();
+  overrides[key]={first,second,personality,example,toneNote,fatBehavior};
+  savePresetOverrides(overrides);
+  editingPresetKey=null;
+  showToast(`「${getPresetData(key).name}」を更新しました`);
+  renderProfContent(key);
+}
+function resetPresetEdit(key){
+  const overrides=loadPresetOverrides();
+  delete overrides[key];
+  savePresetOverrides(overrides);
+  editingPresetKey=null;
+  showToast('初期設定に戻しました');
+  renderProfContent(key);
+}
+function buildCustomCharaSystem(c){return `あなたは「${c.name}」というキャラクターです。性別：${c.gender}。一人称：${c.first}。二人称：${c.second}。
+性格・口調：${c.personality}
+返答は短く、キャラの口調で。JSONは絶対に出力しない。`;}
+
+// ===================== MENU =====================
+function loadMenus(){try{return JSON.parse(localStorage.getItem('karada_menus'))||[];}catch{return[];}}
+function saveMenus(m){localStorage.setItem('karada_menus',JSON.stringify(m));}
+function addMenuItem(){
+  const name=document.getElementById('menuName').value.trim();
+  const kcal=parseFloat(document.getElementById('menuKcal').value);
+  const p=parseFloat(document.getElementById('menuP').value);
+  const f=parseFloat(document.getElementById('menuF').value);
+  const c=parseFloat(document.getElementById('menuC').value);
+  if(!name){showToast('メニュー名を入力してください');return;}
+  if(isNaN(kcal)||isNaN(p)||isNaN(f)||isNaN(c)){showToast('栄養素を全て入力してください');return;}
+  const menus=loadMenus();
+  menus.push({id:Date.now(),name,kcal,p,f,c});
+  saveMenus(menus);
+  document.getElementById('menuName').value='';document.getElementById('menuKcal').value='';
+  document.getElementById('menuP').value='';document.getElementById('menuF').value='';document.getElementById('menuC').value='';
+  showToast(`「${name}」を登録しました`);renderMenuList();
+}
+function deleteMenuItem(id){saveMenus(loadMenus().filter(m=>m.id!==id));renderMenuList();}
+function useMenuItem(item){
+  const dateKey=todayKey();
+  addRecord(dateKey,'meal',item.name,{kcal:item.kcal,p:item.p,f:item.f,c:item.c});
+  switchTab('chat');
+  appendMsg('user',`${item.name}を食べた`,null);
+  appendMsg('ai',`${item.name}を記録したよ！（${item.kcal}kcal / P${item.p}g F${item.f}g C${item.c}g）
+✦ 記録しました`,null);
+  showToast(`「${item.name}」を記録しました`);
+}
+function clearAllMenus(){
+  if(!loadMenus().length){showToast('登録済みメニューがありません');return;}
+  saveMenus([]);showToast('全て削除しました');renderMenuList();
+}
+function renderMenuList(){
+  const menus=loadMenus();
+  const list=document.getElementById('menuList');
+  if(!menus.length){list.innerHTML='<div class="menu-empty">— まだ登録されていません —</div>';return;}
+  list.innerHTML=menus.map(m=>`<div class="menu-item" onclick="useMenuItem(${JSON.stringify(m).replace(/"/g,'&quot;')})"><div class="menu-item-info"><div class="menu-item-name">${m.name}</div><div class="menu-item-nut">${m.kcal}kcal &nbsp;P${m.p}g &nbsp;F${m.f}g &nbsp;C${m.c}g</div></div><button class="menu-item-del" onclick="event.stopPropagation();deleteMenuItem(${m.id})">×</button></div>`).join('');
+}
+
+// ===================== CALENDAR =====================
+let calYear,calMonth,selectedDateKey;
+function initCalendar(){
+  const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();
+  selectedDateKey=todayKey();renderCalendar();
+}
+function changeMonth(d){
+  calMonth+=d;
+  if(calMonth<0){calMonth=11;calYear--;}
+  if(calMonth>11){calMonth=0;calYear++;}
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const data=loadData();
+  document.getElementById('calMonth').textContent=`${calMonth+1}月`;
+  renderFatTargets();
+  const grid=document.getElementById('calGrid');
+  grid.querySelectorAll('.cal-day').forEach(e=>e.remove());
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  const todayStr=todayKey();
+  const flags=data.flags||{};
+
+  for(let i=0;i<firstDay;i++){const e=document.createElement('div');e.className='cal-day empty';grid.appendChild(e);}
+  for(let d=1;d<=dim;d++){
+    const key=dateKey(calYear,calMonth,d);
+    const cell=document.createElement('div');cell.className='cal-day';
+    if(key===todayStr) cell.classList.add('today');
+    if(key===selectedDateKey) cell.classList.add('selected');
+
+    // 達成/未達/特殊フラグ
+    const flag=flags[key];
+    if(flag==='hiking') cell.classList.add('special-hiking');
+    else if(flag==='party') cell.classList.add('special-party');
+    else if(flag&&flag.startsWith('custom-')){
+      const idx=parseInt(flag.replace('custom-',''));
+      const days=loadSpecialDays();
+      const sd=days[idx];
+      if(sd&&sd.name){
+        cell.style.background='rgba(139,184,165,0.2)';
+        cell.style.border='1px solid rgba(139,184,165,0.4)';
+        cell.style.borderRadius='8px';
+        cell.title=sd.name;
+        // 絵文字オーバーレイ
+        const emojiEl=document.createElement('div');
+        emojiEl.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;opacity:0.7;pointer-events:none';
+        emojiEl.textContent=sd.emoji||'🌟';
+        cell.appendChild(emojiEl);
+      }
+    }
+    else if(isPast(key)){
+      const judge=judgeDay(key);
+      if(judge==='achieved') cell.classList.add('achieved');
+      else if(judge==='failed') cell.classList.add('failed');
+    }
+
+    const numEl=document.createElement('div');numEl.className='day-num';numEl.textContent=d;
+    cell.appendChild(numEl);
+    const dots=document.createElement('div');dots.className='day-dots';
+    const recs=data.records[key]||[];
+    const types=[...new Set(recs.map(r=>r.type))];
+    if(data.weights?.[key]){const dot=document.createElement('div');dot.className='dot dot-weight';dots.appendChild(dot);}
+    if((data.weekly||[]).some(w=>w.date===key)){const dot=document.createElement('div');dot.className='dot dot-weekly';dots.appendChild(dot);}
+    const dm={exercise:'dot-exercise',poop:'dot-poop',condition:'dot-condition'};
+    types.forEach(t=>{if(dm[t]){const dot=document.createElement('div');dot.className='dot '+dm[t];dots.appendChild(dot);}});
+    cell.appendChild(dots);
+    cell.onclick=()=>{selectedDateKey=key;renderCalendar();renderDayDetail(key);};
+    grid.appendChild(cell);
+  }
+  renderDayDetail(selectedDateKey);
+}
+
+function calcDayNutritionFromRecs(mealRecs){
+  let kcal=0,p=0,f=0,c=0;
+  mealRecs.forEach(r=>{if(r.nutrition){kcal+=r.nutrition.kcal||0;p+=r.nutrition.p||0;f+=r.nutrition.f||0;c+=r.nutrition.c||0;}});
+  return{kcal:Math.round(kcal),p:Math.round(p*10)/10,f:Math.round(f*10)/10,c:Math.round(c*10)/10};
+}
+function calcDayNutrition(key){
+  const data=loadData();
+  return calcDayNutritionFromRecs((data.records[key]||[]).filter(r=>r.type==='meal'));
+}
+
+function renderNutritionBar(key){
+  const nb=document.getElementById('nutritionBar');
+  const data=loadData();
+  const flags=data.flags||{};
+  const mealRecs=(data.records[key]||[]).filter(r=>r.type==='meal');
+
+  // 特別な日の確認
+  const flagType=flags[key];
+  let skipLabel='';
+  if(flagType==='hiking') skipLabel='⛰ 登山の日（栄養素計算スキップ）';
+  else if(flagType==='party') skipLabel='🎉 パーティーの日（栄養素計算スキップ）';
+  else if(flagType&&flagType.startsWith('custom-')){
+    const idx=parseInt(flagType.replace('custom-',''));
+    const sdays=loadSpecialDays();
+    const sd=sdays[idx];
+    if(sd&&sd.name&&sd.skipKcal) skipLabel=`${sd.emoji||'🌟'} ${sd.name}（栄養素計算スキップ）`;
+  }
+  if(skipLabel){
+    nb.style.display='block';
+    nb.innerHTML=`<div style="text-align:center;padding:8px 0;font-size:11px;color:var(--text-muted)">${skipLabel}</div>`;
+    return;
+  }
+  if(!mealRecs.length){nb.style.display='none';return;}
+  const g=loadGoalSettings();
+  const n=calcDayNutritionFromRecs(mealRecs);
+  const kcalGoalDisplay=(g.kcalMin+g.kcalMax)/2;
+  nb.style.display='block';
+  nb.innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:9px;color:var(--text-muted);letter-spacing:.08em">NUTRITION</span>
+      <span style="font-size:9px;color:var(--text-muted)">残り目標</span>
+    </div>
+    ${[
+      {label:'kcal',val:n.kcal,goal:kcalGoalDisplay,rem:kcalGoalDisplay-n.kcal,cls:'kcal',unit:'kcal'},
+      {label:'P',val:n.p,goal:g.p,rem:g.p-n.p,cls:'prot',unit:'g'},
+      {label:'F',val:n.f,goal:g.fatMax,rem:g.fatMax-n.f,cls:'fat',unit:'g'},
+      {label:'C',val:n.c,goal:g.c,rem:g.c-n.c,cls:'carb',unit:'g'},
+    ].map(item=>`
+      <div class="nut-row">
+        <span class="nut-label">${item.label}</span>
+        <div class="nut-track"><div class="nut-fill ${item.cls}" style="width:${Math.min(Math.round(item.val/item.goal*100),100)}%"></div></div>
+        <span class="nut-nums ${item.val>item.goal?'nut-over':''}">${item.val}/${item.goal}${item.unit} <span style="color:${item.rem<0?'var(--red)':'var(--text-muted)'}">残${item.rem<0?'超過':Math.round(item.rem*10)/10+item.unit}</span></span>
+      </div>`).join('')}
+  `;
+}
+
+function deleteRecord(dateKey,idx){
+  const data=loadData();if(!data.records[dateKey]) return;
+  data.records[dateKey].splice(idx,1);saveData(data);
+  renderDayDetail(dateKey);renderCalendar();
+}
+function deleteWeight(dateKey){
+  const data=loadData();if(data.weights) delete data.weights[dateKey];
+  saveData(data);renderDayDetail(dateKey);renderCalendar();updateHeaderWeekly();
+}
+function deleteWeekly(dateKey){
+  const data=loadData();if(data.weekly) data.weekly=data.weekly.filter(w=>w.date!==dateKey);
+  saveData(data);renderDayDetail(dateKey);renderCalendar();updateHeaderWeekly();
+}
+function deleteFlag(dateKey){
+  const data=loadData();
+  if(data.flags) delete data.flags[dateKey];
+  saveData(data);
+  renderCalendar();
+  renderDayDetail(dateKey);
+  showToast('フラグを削除しました');
+}
+
+function renderDayDetail(key){
+  const data=loadData();
+  const d=new Date(key+'T00:00:00');
+  const todayK=todayKey();
+  const weightVal=data.weights?.[key];
+  const dateLabel=key===todayK?'TODAY':`${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('detailHeader').textContent=dateLabel+(weightVal?`　${weightVal}kg`:'');
+  renderNutritionBar(key);
+  const recs=data.records[key]||[];
+  const weeklyRec=(data.weekly||[]).find(w=>w.date===key);
+  const flags=data.flags||{};
+  const hasPoop=recs.some(r=>r.type==='poop');
+  const statusEl=document.getElementById('detailStatus');
+  if(statusEl){
+    statusEl.innerHTML=hasPoop?'<span class="status-icon">💩</span>':'';
+  }
+  const items=[];
+  if(weeklyRec) items.push({icon:'◻',label:'WEEKLY',value:`体重 ${weeklyRec.weight}kg ・ 体脂肪量 ${weeklyRec.fatKg}kg`,time:'',nut:null,delBtn:`<button class="rec-del" onclick="deleteWeekly('${key}')">×</button>`});
+  const tc={meal:{icon:'◆',label:'MEAL'},exercise:{icon:'▷',label:'EXERCISE'},condition:{icon:'◇',label:'CONDITION'}};
+  recs.forEach((r,i)=>{
+    if(r.type==='poop') return;
+    const cv=tc[r.type]||{icon:'◉',label:r.type};
+    items.push({...cv,value:r.value,time:r.time||'',nut:r.nutrition||null,delBtn:`<button class="rec-del" onclick="deleteRecord('${key}',${i})">×</button>`});
+  });
+  const list=document.getElementById('recordList');
+  if(!items.length){list.innerHTML='<div class="no-records">— no records —</div>';return;}
+  list.innerHTML=items.map(item=>`
+    <div class="record-item">
+      <div class="record-icon">${item.icon}</div>
+      <div class="record-content">
+        <div class="record-label">${item.label}</div>
+        <div class="record-value">${item.value}</div>
+        ${item.nut?`<div class="record-nut">${item.nut.kcal}kcal / P${item.nut.p}g F${item.nut.f}g C${item.nut.c}g</div>`:''}
+        ${item.time?`<div class="record-time">${item.time}</div>`:''}
+      </div>
+      ${item.delBtn}
+    </div>`).join('');
+}
+
+// ===================== CHAT =====================
+let messages=[];
+let isLoading=false;
+
+function addRecord(dateKey,type,value,nutrition=null){
+  const data=loadData();
+  if(!data.records[dateKey]) data.records[dateKey]=[];
+  data.records[dateKey].push({type,value,time:nowTime(),nutrition});
+  saveData(data);
+  if(currentTab==='calendar'){renderDayDetail(selectedDateKey);renderCalendar();}
+}
+function addWeight(dateKey,val){
+  const data=loadData();if(!data.weights) data.weights={};
+  data.weights[dateKey]=val;saveData(data);
+  if(currentTab==='calendar'){renderDayDetail(selectedDateKey);renderCalendar();}
+  updateHeaderWeekly();
+}
+function addWeekly(dateKey,weight,fatKg){
+  const data=loadData();if(!data.weekly) data.weekly=[];
+  const idx=data.weekly.findIndex(w=>w.date===dateKey);
+  if(idx>=0) data.weekly[idx]={date:dateKey,weight,fatKg};
+  else data.weekly.push({date:dateKey,weight,fatKg});
+  saveData(data);
+  if(currentTab==='calendar'){renderDayDetail(selectedDateKey);renderCalendar();}
+  updateHeaderWeekly();
+}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
+
+function appendMsg(role,text,charKey){
+  const container=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  let charDef=null;
+  if(charKey){
+    if(charKey.startsWith('custom_')){
+      const id=parseInt(charKey.replace('custom_',''));
+      const c=loadCustomCharas().find(x=>x.id===id);
+      charDef=c?{name:c.name,avatar:'✦',imgKey:null}:null;
+    } else {
+      const base=getPresetData(charKey);
+      if(base) charDef={name:base.name,avatar:base.avatar,imgKey:charKey};
+    }
+  }
+
+  if(role==='user'){
+    div.className='msg-user';
+    div.innerHTML=`<div class="msg-bubble">${text}</div><div class="msg-meta">${nowTime()}</div>`;
+  } else {
+    div.className='msg-ai';
+    const charLabel=charDef?charDef.name:'';
+    div.innerHTML=`<div class="msg-ai-row"><div class="msg-ai-icon"></div><div class="msg-ai-body"><div class="msg-bubble">${text}</div></div></div><div class="msg-meta"><span class="msg-char">${charLabel}</span><span>${nowTime()}</span></div>`;
+    const iconEl=div.querySelector('.msg-ai-icon');
+    const imgSrc=null; // 配布版：チャットアバター画像なし
+    if(imgSrc){
+      iconEl.classList.add('kei-icon');
+      const img=document.createElement('img');
+      img.src=imgSrc;
+      img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%';
+      iconEl.appendChild(img);
+    } else {
+      iconEl.textContent=charDef?charDef.avatar:'';
+    }
+  }
+  container.appendChild(div);
+  container.scrollTop=container.scrollHeight;
+}
+function showTyping(id='typing'){
+  hideTyping(id);
+  const container=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.id=id;div.className='typing-indicator';
+  div.innerHTML='<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+  container.appendChild(div);container.scrollTop=container.scrollHeight;
+}
+function hideTyping(id='typing'){const t=document.getElementById(id);if(t)t.remove();}
+
+function extractAndClean(aiText){
+  let display=aiText;
+  const tagMatch=display.match(/\[JSON_START\]([\s\S]*?)\[JSON_END\]/);
+  if(tagMatch) display=display.replace(/\[JSON_START\][\s\S]*?\[JSON_END\]/g,'');
+  display=display.replace(/`{1,3}(?:json)?[\s\S]*?`{1,3}/g,'');
+  display=display.replace(/\{[\s\S]*?"(?:records|date|weight|weekly|meals)"[\s\S]*?\}/gs,'');
+  return display.trim();
+}
+
+
+
+
+// 記録はsendMessage内でAIにJSONタグを出力させて行う（自然な会話文に対応するため）。
+// guessDateはテキストから日付を推測する補助関数として残す。
+function guessDate(text){
+  const now=new Date();
+  const toKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  if(/一昨日/.test(text)){const d=new Date(now);d.setDate(d.getDate()-2);return toKey(d);}
+  if(/昨日/.test(text)){const d=new Date(now);d.setDate(d.getDate()-1);return toKey(d);}
+  if(/今日|今朝|今夜|今晩/.test(text)) return toKey(now);
+
+  // 「先週の〜曜」or 「〜曜日」「〜曜」
+  const dowMap={月:1,火:2,水:3,木:4,金:5,土:6,日:0};
+  const dowMatch=text.match(/(?:先週の?)?(月|火|水|木|金|土|日)曜/);
+  if(dowMatch){
+    const targetDow=dowMap[dowMatch[1]];
+    const isLastWeek=/先週/.test(text);
+    const d=new Date(now);
+    let diff=now.getDay()-targetDow;
+    if(diff<=0) diff+=7; // 今週まだ来てない曜日は先週扱い
+    if(isLastWeek) diff+=7;
+    d.setDate(d.getDate()-diff);
+    return toKey(d);
+  }
+
+  // 「3日前」「2日前」
+  const daysAgoMatch=text.match(/(\d+)\s*日前/);
+  if(daysAgoMatch){const d=new Date(now);d.setDate(d.getDate()-parseInt(daysAgoMatch[1]));return toKey(d);}
+
+  // 「今月◯日」「◯日」（同月内の過去日）
+  const mdMatch=text.match(/(?:今月)?(\d{1,2})日(?:に|は|の)?(?!前)/);
+  if(mdMatch){
+    const day=parseInt(mdMatch[1]);
+    if(day>=1&&day<=31&&day<=now.getDate()){
+      const d=new Date(now.getFullYear(),now.getMonth(),day);
+      return toKey(d);
+    }
+  }
+
+  return toKey(now);
+}
+
+// ===================== SEND MESSAGE =====================
+async function sendMessage(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text||isLoading) return;
+  isLoading=true;
+  document.getElementById('sendBtn').disabled=true;
+  input.value='';input.style.height='auto';
+
+  appendMsg('user',text,null);
+  messages.push({role:'user',content:text});
+
+  const charKeys=pickChar(text);
+
+  const data=loadData();
+  const todayRecs=data.records[todayKey()]||[];
+  const todayWeight=data.weights?.[todayKey()];
+  const todayNut=calcDayNutrition(todayKey());
+  const g=loadGoalSettings();
+  const profile=loadUserProfile();
+  const userName=profile.name||'あなた';
+  const todayFlag=data.flags?.[todayKey()];
+  // 特別な日のリアクション指示
+  let specialDayInstruction='登山中の食事制限は推奨しない。';
+  if(todayFlag){
+    const sd=getSpecialDayType(todayFlag);
+    if(sd&&sd.day){
+      if(sd.day.charReaction) specialDayInstruction=sd.day.charReaction;
+      else if(sd.day.skipKcal) specialDayInstruction=`今日は${sd.day.name}の日。カロリー計算はスキップしてよい。`;
+    }
+  }
+  const contextStr=[
+    `今日: ${new Date().toLocaleDateString('ja-JP')} (${['日','月','火','水','木','金','土'][new Date().getDay()]}曜)`,
+    todayWeight?`体重: ${todayWeight}kg`:'',
+    `今日の栄養: ${todayNut.kcal}kcal P${todayNut.p}g F${todayNut.f}g C${todayNut.c}g`,
+    `kcal目標: ${g.kcalMin}〜${g.kcalMax} / 脂質上限: ${g.fatMax}g`,
+    todayRecs.length?'記録:'+todayRecs.map(r=>`[${r.type}]${r.value}`).join(','):'',
+  ].filter(Boolean).join('\n');
+
+  // 各キャラを順番に、前のキャラの返信を会話履歴に含めて呼ぶ
+  const workingMessages=[...messages]; // コピーして作業用に使う
+  const menus=loadMenus();
+  const menuDBStr=menus.length?menus.map(m=>`- ${m.name}: ${m.kcal}kcal P${m.p}g F${m.f}g C${m.c}g`).join('\n'):'（登録なし）';
+  let mealsExtracted=false;
+
+  for(const charKey of charKeys){
+    const typingId='typing_'+charKey;
+    showTyping(typingId);
+    const charDef=getCharDef(charKey);
+    let systemPrompt=charDef.system+`\n会話のみ返すこと。${specialDayInstruction} 運動していない場合はそのことに言及しない（運動した場合のみ触れてOK）。ユーザーのことはユーザー名「${userName}」と呼ぶこと（「ユーザー」とは呼ばない）。\n## 今日のデータ\n`+contextStr;
+    // 最初のキャラのみ、食事内容があれば記録用JSONタグを付与してもらう
+    const isFirst=charKeys.indexOf(charKey)===0;
+    if(isFirst){
+      systemPrompt+=`
+
+## 記録について（重要）
+ユーザーのメッセージ内容を判断し、該当する記録があれば返答の最後（会話の後）に記録用データを追加してください。雑談だけで記録すべき内容が無ければ何も出力しないこと。
+
+判断する記録の種類:
+- meals: 食事・飲み物の内容（食べた/飲んだもの）。登録済みメニューDBにある品目はその値を使う:
+${menuDBStr}
+  未登録の品目は一般的な1人前で推定。カロリーが明記されていればそのカロリーを使い、PFCのみ推定する。
+- weight: 体重の報告（「体重65kg」「今朝65.5kgだった」など）。kgの数値のみ。
+- weekly: 土曜日などに行う週次測定で、体重と体脂肪量（または体脂肪率%）が両方含まれる場合。例:「体重と体脂肪…65.8/21.8kg」「体重65kg 体脂肪率30%」。体脂肪率%の場合は体重との掛け算でkgに変換すること。
+- poop: 排便があったという報告（実際に「出た」という確実な文脈のみ。「結果が出た」「元気が出た」等の紛らわしい表現には反応しないこと）。delete:trueにすると記録の削除を意味する（「排便の記録間違えた」「うんち消して」等）。
+- exercise: 運動をしたという報告（例:「キックボクシング行った」「ジム行った」）。運動の話題が出ても実際に行った報告でなければ記録しない（例:「キックが強くなったって言われた」は運動報告ではない）。
+- condition: 体調に関する報告（絶好調、疲れた、頭痛、不調など）。
+- flag: 特別な日（登山・パーティー・カスタム）の予定・実施の報告。typeは"hiking"、"party"、または"custom-0"〜"custom-4"のいずれか。カスタム特別な日：${loadSpecialDays().map((d,i)=>d.name?`custom-${i}=${d.name}(${d.emoji})`:null).filter(Boolean).join('、')||'未設定'}。日付の言及があればdateフィールドに反映。
+
+共通ルール:
+- 「昨日」「一昨日」「月曜日に」などの日付言及がある場合は、各レコードのdateフィールドに "yesterday"/"daybeforeyesterday"/"today" のいずれか、または曜日名（"月"〜"日"）を入れること。言及がなければ "today"。
+- 該当しない種類は出力しなくてよい（キーごと省略可）。
+- フォーマット（ユーザーには表示されません。会話文の後に続けて書くこと）:
+[JSON_START]{"meals":[{"name":"品目名","kcal":数値,"p":数値,"f":数値,"c":数値,"date":"today"}],"weight":{"kg":数値,"date":"today"},"weekly":{"weight":数値,"fatKg":数値,"date":"today"},"poop":{"delete":false,"date":"today"},"exercise":{"name":"内容","date":"today"},"condition":{"text":"内容","date":"today"},"flag":{"type":"hiking","date":"today"}}[JSON_END]`;
+    }
+    try{
+      const aiText=await callAPI(systemPrompt, workingMessages, 400);
+      hideTyping(typingId);
+      const display=extractAndClean(aiText)||aiText;
+      appendMsg('ai',display,charKey);
+      workingMessages.push({role:'assistant',content:`${charDef.name}: ${display}`});
+
+      // 最初のキャラの返信から記録JSONを抽出（食事・体重・週次・排便・運動・体調・フラグ）
+      if(isFirst&&!mealsExtracted){
+        const jsonMatch=aiText.match(/\[JSON_START\]([\s\S]*?)\[JSON_END\]/);
+        if(jsonMatch){
+          try{
+            const parsed=JSON.parse(jsonMatch[1]);
+            const now2=new Date();
+            const toKey2=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const dowMap2={月:1,火:2,水:3,木:4,金:5,土:6,日:0};
+            const resolveDate=df=>{
+              if(!df||df==='today') return todayKey();
+              if(df==='yesterday'){const d=new Date(now2);d.setDate(d.getDate()-1);return toKey2(d);}
+              if(df==='daybeforeyesterday'){const d=new Date(now2);d.setDate(d.getDate()-2);return toKey2(d);}
+              if(dowMap2[df]!==undefined){const d=new Date(now2);let diff=now2.getDay()-dowMap2[df];if(diff<=0)diff+=7;d.setDate(d.getDate()-diff);return toKey2(d);}
+              return todayKey();
+            };
+            let recordedCount=0;
+
+            // 食事
+            if(Array.isArray(parsed.meals)&&parsed.meals.length>0){
+              for(const meal of parsed.meals){
+                if(!meal.name) continue;
+                const targetDate=resolveDate(meal.date);
+                const menuHit=menus.find(m=>meal.name.includes(m.name)||m.name.includes(meal.name));
+                const nut=menuHit
+                  ?{kcal:menuHit.kcal,p:menuHit.p,f:menuHit.f,c:menuHit.c}
+                  :{kcal:Math.round(meal.kcal)||0,p:Math.round((meal.p||0)*10)/10,f:Math.round((meal.f||0)*10)/10,c:Math.round((meal.c||0)*10)/10};
+                addRecord(targetDate,'meal',menuHit?menuHit.name:meal.name,nut);
+                recordedCount++;
+              }
+            }
+            // 体重
+            if(parsed.weight&&parsed.weight.kg!=null){
+              addWeight(resolveDate(parsed.weight.date),parseFloat(parsed.weight.kg));
+              recordedCount++;
+            }
+            // 週次測定
+            if(parsed.weekly&&parsed.weekly.weight!=null&&parsed.weekly.fatKg!=null){
+              addWeekly(resolveDate(parsed.weekly.date),parseFloat(parsed.weekly.weight),parseFloat(parsed.weekly.fatKg));
+              recordedCount++;
+            }
+            // 排便
+            if(parsed.poop){
+              const targetDate=resolveDate(parsed.poop.date);
+              if(parsed.poop.delete){
+                const d=loadData();
+                const list=d.records[targetDate]||[];
+                const before=list.length;
+                d.records[targetDate]=list.filter(r=>r.type!=='poop');
+                if(d.records[targetDate].length<before){saveData(d);recordedCount++;}
+              } else {
+                addRecord(targetDate,'poop','記録あり',null);
+                recordedCount++;
+              }
+            }
+            // 運動
+            if(parsed.exercise&&parsed.exercise.name){
+              addRecord(resolveDate(parsed.exercise.date),'exercise',parsed.exercise.name,null);
+              recordedCount++;
+            }
+            // 体調
+            if(parsed.condition&&parsed.condition.text){
+              addRecord(resolveDate(parsed.condition.date),'condition',parsed.condition.text,null);
+              recordedCount++;
+            }
+            // フラグ（登山・パーティー・カスタム特別な日）
+            if(parsed.flag&&parsed.flag.type){
+              const validTypes=['hiking','party','custom-0','custom-1','custom-2','custom-3','custom-4'];
+              if(validTypes.includes(parsed.flag.type)){
+                const targetDate=resolveDate(parsed.flag.date);
+                const d=loadData();if(!d.flags) d.flags={};
+                d.flags[targetDate]=parsed.flag.type;
+                saveData(d);
+                recordedCount++;
+              }
+            }
+
+            if(recordedCount>0){
+              mealsExtracted=true;
+              showToast(`✦ ${recordedCount}件を記録しました`);
+              renderCalendar();
+              if(currentTab==='calendar') renderDayDetail(selectedDateKey);
+            }
+          }catch(e){/* JSON解析失敗時は記録しない */}
+        }
+      }
+
+      if(charKeys.indexOf(charKey)<charKeys.length-1){
+        const nextKey=charKeys[charKeys.indexOf(charKey)+1];
+        const nextDef=getCharDef(nextKey);
+        workingMessages.push({role:'user',content:`${nextDef.name}はどう思う？`});
+      }
+    }catch(e){
+      hideTyping(typingId);
+      appendMsg('ai',`（エラー: ${e.message||e}）`,charKey);
+    }
+  }
+
+  // 本来のmessages履歴にはまとめて追加
+  messages.push({role:'assistant',content:'（複数キャラ返信）'});
+
+  isLoading=false;
+  document.getElementById('sendBtn').disabled=false;
+}
+
+// ===================== LOG VIEW & SAVE =====================
+let isLogView=false;
+let logSelectMode=false;
+
+function toggleLogView(){
+  isLogView=!isLogView;
+  const container=document.getElementById('chatMessages');
+  const btn=document.getElementById('logToggleBtn');
+  if(isLogView){
+    container.classList.add('log-view');
+    btn.classList.add('active');
+    btn.textContent='💬 チャット';
+    // ログ選択モードに切替ボタン表示
+    document.getElementById('logSaveBtn').style.display='';
+    // 各メッセージにチェックボックス追加
+    enterLogSelectMode();
+  } else {
+    container.classList.remove('log-view');
+    btn.classList.remove('active');
+    btn.textContent='📋 ログ';
+    document.getElementById('logSaveBtn').style.display='none';
+    document.getElementById('logCancelBtn').style.display='none';
+    exitLogSelectMode();
+    logSelectMode=false;
+  }
+}
+
+function enterLogSelectMode(){
+  logSelectMode=true;
+  document.getElementById('logCancelBtn').style.display='';
+  const msgs=document.getElementById('chatMessages').querySelectorAll('.msg-user,.msg-ai');
+  msgs.forEach((el,i)=>{
+    const cb=document.createElement('input');
+    cb.type='checkbox';cb.className='log-check';cb.dataset.idx=i;
+    cb.style.cssText='position:absolute;left:4px;top:50%;transform:translateY(-50%);accent-color:var(--accent);width:16px;height:16px;cursor:pointer;';
+    el.style.position='relative';
+    el.style.paddingLeft='26px';
+    el.prepend(cb);
+  });
+}
+
+function exitLogSelectMode(){
+  const msgs=document.getElementById('chatMessages').querySelectorAll('.msg-user,.msg-ai');
+  msgs.forEach(el=>{
+    const cb=el.querySelector('.log-check');
+    if(cb) cb.remove();
+    el.style.paddingLeft='';
+  });
+}
+
+function cancelLogSelect(){
+  // ログビューのまま選択解除
+  exitLogSelectMode();
+  setTimeout(()=>enterLogSelectMode(),10);
+}
+
+function saveSelectedLog(){
+  const msgs=document.getElementById('chatMessages').querySelectorAll('.msg-user,.msg-ai');
+  let lines=[];
+  msgs.forEach(el=>{
+    const cb=el.querySelector('.log-check');
+    if(!cb||!cb.checked) return;
+    const isUser=el.classList.contains('msg-user');
+    const bubble=el.querySelector('.msg-bubble');
+    const charEl=el.querySelector('.msg-char');
+    const timeEl=el.querySelector('.msg-meta span:last-child');
+    const name=isUser?(loadUserProfile().name||'あなた'):(charEl?charEl.textContent:'AI');
+    const time=timeEl?timeEl.textContent:'';
+    const text=bubble?bubble.textContent:'';
+    lines.push(`[${time}] ${name}: ${text}`);
+  });
+  if(!lines.length){showToast('メッセージを選択してください');return;}
+  const content=lines.join('\n');
+  const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const now=new Date();
+  const fname=`karada_log_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.txt`;
+  a.href=url;a.download=fname;a.click();
+  URL.revokeObjectURL(url);
+  showToast(`${lines.length}件を保存しました`);
+}
+
+// ===================== DATA EXPORT / IMPORT =====================
+function showExportText(){
+  const keys=['karada_v3','karada_menus','karada_goals','karada_start','karada_fat_targets','karada_preset_overrides','karada_sharehouse','karada_special_days','karada_user_profile'];
+  const obj={exported_at:new Date().toISOString()};
+  for(const k of keys) obj[k]=localStorage.getItem(k);
+  const json=JSON.stringify(obj);
+  const ta=document.getElementById('exportTextArea');
+  const btn=document.getElementById('exportCopyBtn');
+  ta.value=json;
+  ta.style.display='';
+  btn.style.display='';
+  ta.select();
+  showToast('テキストを全選択してコピーしてください');
+}
+function copyExportText(){
+  const ta=document.getElementById('exportTextArea');
+  ta.select();
+  try{
+    document.execCommand('copy');
+    showToast('コピーしました！');
+  }catch(e){
+    showToast('手動で全選択してコピーしてください');
+  }
+}
+function importFromText(){
+  const ta=document.getElementById('importTextArea');
+  const text=ta.value.trim();
+  if(!text){showToast('テキストを貼り付けてください');return;}
+  try{
+    const obj=JSON.parse(text);
+    const keys=['karada_v3','karada_menus','karada_goals','karada_start','karada_fat_targets','karada_preset_overrides','karada_sharehouse','karada_special_days','karada_user_profile'];
+    let count=0;
+    for(const k of keys){
+      if(obj[k]!=null){localStorage.setItem(k,obj[k]);count++;}
+    }
+    showToast(`インポート完了（${count}項目）`);
+    setTimeout(()=>location.reload(),800);
+  }catch(e){
+    showToast('失敗：テキストが正しくありません');
+  }
+}
+
+// ===================== AI API =====================
+const GEMINI_KEY_STORAGE='karada_gemini_key';
+function loadApiKey(){return localStorage.getItem(GEMINI_KEY_STORAGE)||'';}
+function saveApiKey(){
+  const key=document.getElementById('geminiApiKey')?.value.trim()||'';
+  localStorage.setItem(GEMINI_KEY_STORAGE,key);
+  showToast(key?'Gemini APIキーを保存しました':'APIキーをクリアしました（Claude使用）');
+}
+function initApiKeyForm(){
+  const el=document.getElementById('geminiApiKey');
+  if(el) el.value=loadApiKey();
+  renderSpecialDaysForm();
+}
+
+// ===================== 特別な日の設定 =====================
+const SPECIAL_DAYS_KEY='karada_special_days';
+const DEFAULT_SPECIAL_DAYS=[
+  {name:'登山',emoji:'⛰️',skipKcal:true,charReaction:'登山中の食事制限は一切推奨しない。下山後に食事のリカバリーをアドバイスしてもよい。',onlyFirst:false},
+  {name:'パーティー',emoji:'🎉',skipKcal:true,charReaction:'今日はパーティーの日。カロリーは気にしなくていいと伝え、楽しむよう励ます。',onlyFirst:true},
+  {name:'',emoji:'🌟',skipKcal:false,charReaction:'',onlyFirst:false},
+  {name:'',emoji:'💊',skipKcal:false,charReaction:'',onlyFirst:false},
+  {name:'',emoji:'🏖️',skipKcal:false,charReaction:'',onlyFirst:false},
+];
+function loadSpecialDays(){
+  try{
+    const v=JSON.parse(localStorage.getItem(SPECIAL_DAYS_KEY));
+    if(Array.isArray(v)&&v.length===5) return v;
+    return DEFAULT_SPECIAL_DAYS.map(d=>({...d}));
+  }catch{return DEFAULT_SPECIAL_DAYS.map(d=>({...d}));}
+}
+function saveSpecialDays(){
+  const days=[];
+  for(let i=0;i<5;i++){
+    const name=(document.getElementById(`sdName${i}`)?.value||'').trim();
+    const emoji=(document.getElementById(`sdEmoji${i}`)?.value||'').trim()||DEFAULT_SPECIAL_DAYS[i].emoji;
+    const skipKcal=document.getElementById(`sdSkip${i}`)?.checked||false;
+    const onlyFirst=document.getElementById(`sdFirst${i}`)?.checked||false;
+    const charReaction=(document.getElementById(`sdReaction${i}`)?.value||'').trim();
+    days.push({name,emoji,skipKcal,charReaction,onlyFirst});
+  }
+  localStorage.setItem(SPECIAL_DAYS_KEY,JSON.stringify(days));
+  showToast('特別な日の設定を保存しました');
+  renderCalendar();
+}
+function renderSpecialDaysForm(){
+  const el=document.getElementById('specialDaysForm');
+  if(!el) return;
+  const days=loadSpecialDays();
+  el.innerHTML=days.map((d,i)=>`
+    <div class="special-day-card">
+      <div class="special-day-header">
+        <input class="menu-input" id="sdEmoji${i}" value="${d.emoji}" style="width:46px;text-align:center;font-size:18px;padding:4px">
+        <input class="menu-input" id="sdName${i}" value="${d.name}" placeholder="名前（例：登山・外食など）" style="flex:1">
+      </div>
+      <div class="menu-pfc-wrap"><span class="menu-pfc-label">キャラへの指示（任意）</span>
+        <textarea class="menu-input" id="sdReaction${i}" style="height:54px;resize:none;font-size:11px;line-height:1.5" placeholder="例：食事制限を推奨しない。楽しむよう励ます。">${d.charReaction}</textarea>
+      </div>
+      <div class="special-day-toggle">
+        <label><input type="checkbox" id="sdSkip${i}" ${d.skipKcal?'checked':''}> カロリー計算をスキップ</label>
+        <label><input type="checkbox" id="sdFirst${i}" ${d.onlyFirst?'checked':''}> 最初の1回のみ</label>
+      </div>
+    </div>`).join('');
+}
+// 特別な日のtypeをインデックスで返す (hiking/party/custom-0〜4)
+function getSpecialDayType(flagType){
+  if(flagType==='hiking') return{idx:-1,day:{name:'登山',emoji:'⛰️',skipKcal:true}};
+  if(flagType==='party') return{idx:-1,day:{name:'パーティー',emoji:'🎉',skipKcal:true}};
+  const m=flagType?.match(/^custom-(\d)$/);
+  if(m){
+    const idx=parseInt(m[1]);
+    const days=loadSpecialDays();
+    if(days[idx]&&days[idx].name) return{idx,day:days[idx]};
+  }
+  return null;
+}
+
+// ===================== ユーザープロフィール =====================
+const USER_PROFILE_KEY='karada_user_profile';
+function loadUserProfile(){
+  try{return JSON.parse(localStorage.getItem(USER_PROFILE_KEY))||{};}catch{return{};}
+}
+function saveUserProfile(){
+  const name=(document.getElementById('upName')?.value||'').trim()||'あなた';
+  const height=parseFloat(document.getElementById('upHeight')?.value)||null;
+  const gender=(document.getElementById('upGender')?.value||'').trim();
+  const imgEl=document.getElementById('upImgPreview');
+  const img=imgEl?.src&&imgEl.src.startsWith('data:')?imgEl.src:null;
+  const profile=loadUserProfile();
+  const newProfile={...profile,name,height,gender};
+  if(img) newProfile.img=img;
+  localStorage.setItem(USER_PROFILE_KEY,JSON.stringify(newProfile));
+  showToast('ユーザー設定を保存しました');
+  renderProfContent('user');
+}
+function upLoadImg(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const el=document.getElementById('upImgPreview');
+    if(el){el.src=e.target.result;el.style.display='block';}
+    const placeholder=document.getElementById('upImgPlaceholder');
+    if(placeholder) placeholder.style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===================== チャット朝5時リセット =====================
+const LAST_OPEN_KEY='karada_last_open';
+function checkMidnightReset(){
+  const now=new Date();
+  const todayReset=new Date(now);
+  todayReset.setHours(5,0,0,0);
+  if(now<todayReset) todayReset.setDate(todayReset.getDate()-1);
+  const lastOpenStr=localStorage.getItem(LAST_OPEN_KEY);
+  const lastOpen=lastOpenStr?new Date(lastOpenStr):null;
+  if(lastOpen&&lastOpen<todayReset){
+    messages=[];
+    const container=document.getElementById('chatMessages');
+    if(container) container.innerHTML='';
+  }
+  localStorage.setItem(LAST_OPEN_KEY,now.toISOString());
+}
+
+// Gemini or Claude unified API call
+async function callAPI(systemPrompt, messages, maxTokens=400){
+  const geminiKey=loadApiKey();
+  if(geminiKey){
+    // Gemini API (gemini-2.0-flash)
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+    const contents=messages.map(m=>({
+      role:m.role==='assistant'?'model':'user',
+      parts:[{text:m.content}]
+    }));
+    const body={
+      system_instruction:{parts:[{text:systemPrompt}]},
+      contents,
+      generationConfig:{maxOutputTokens:maxTokens,temperature:0.9}
+    };
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    return data.candidates?.[0]?.content?.parts?.[0]?.text||'……';
+  } else {
+    // Claude API (proxy)
+    const body={model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:systemPrompt+'\n\n---\n以下の会話に答えてください。'},...messages.slice(1)]};
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(data.error) throw new Error(`${data.error.type}: ${data.error.message}`);
+    return data.content?.[0]?.text||'……';
+  }
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ===================== INIT =====================
+// ===================== 入力欄フォーカス時の自動スクロール =====================
+// キーボード表示で入力欄が隠れないよう、全ての入力欄に効くグローバル対応
+// （今後新しいフォームを追加してもこの仕組みが自動で適用される）
+document.addEventListener('focusin',e=>{
+  const t=e.target;
+  if(t.matches('input,textarea,select')&&t.id!=='chatInput'){
+    setTimeout(()=>{
+      t.scrollIntoView({block:'center',behavior:'smooth'});
+    },300);
+  }
+});
+
+initCalendar();renderMenuList();updateHeaderWeekly();renderFatTargets();checkMidnightReset();
+
+async function showOpeningGreeting(){
+  document.getElementById('chatMessages').innerHTML='';
+  const charKey=RANDOM_CHARS[Math.floor(Math.random()*RANDOM_CHARS.length)];
+  const charDef=getCharDef(charKey);
+  const slot=getTimeSlot();
+  const data=loadData();
+  const todayRecs=data.records[todayKey()]||[];
+  const todayWeight=data.weights?.[todayKey()];
+  const todayNut=calcDayNutrition(todayKey());
+  const meals=todayRecs.filter(r=>r.type==='meal').map(r=>r.value);
+  const mealSummary=meals.length?`今日食べたもの: ${meals.join('、')}（${todayNut.kcal}kcal）`:'今日の食事記録はまだなし';
+  const exerciseSummary=todayRecs.some(r=>r.type==='exercise')?'運動記録あり':'';
+  const slotLabel={morning:'朝',midmorning:'午前中',lunch:'昼',afternoon:'午後',evening:'夕方',night:'夜',latenight:'深夜'}[slot];
+  const prompt=`${charDef.system}
+今は${slotLabel}。${userName}に一言声をかけてください。
+- ダイエットの話でも雑談でもOK。自然に。
+- 今日の記録: ${mealSummary} / ${exerciseSummary} / 体重:${todayWeight?todayWeight+'kg':'未記録'}
+- 1〜2文でキャラの口調で。JSONは絶対に出力しない。`;
+  showTyping();
+  try{
+    const raw=await callAPI(prompt,[{role:'user',content:prompt}],200);
+    const display=extractAndClean(raw);
+    hideTyping();
+    appendMsg('ai',display||raw,charKey);
+  }catch(e){
+    hideTyping();
+    const fallback=getRandomGreeting();
+    appendMsg('ai',fallback.text,fallback.charKey);
+  }
+}
+showOpeningGreeting();
+</script>
+</body>
+</html>
